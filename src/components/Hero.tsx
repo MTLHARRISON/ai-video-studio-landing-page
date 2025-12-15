@@ -68,8 +68,7 @@ export function Hero() {
         }} transition={{
           duration: 0.8,
           delay: 0.8
-        }} className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-full text-red-400 text-sm font-medium mb-6">
-            <Flag className="w-4 h-4" />
+        }} className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-full text-red-400 text-sm font-medium mb-6">2025 Season <Flag className="w-4 h-4" />
             2025 Season Live
           </motion.div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight text-white">
@@ -77,9 +76,7 @@ export function Hero() {
             <span className="block text-[#cfcf07]">CHAMPIONSHIP</span>
             <span className="block">TRACKER</span>
           </h1>
-          <p className="mt-6 text-lg text-white/70 max-w-md">
-            Live standings, driver stats, and race results from the world's most exciting motorsport.
-          </p>
+          <p className="mt-6 text-lg text-white/70 max-w-md">Live standings, driver stats, and race results from the world's most exciting motorsport. </p>
         </div>
       </motion.div>
 
