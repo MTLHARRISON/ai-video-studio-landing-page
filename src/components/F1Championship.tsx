@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Trophy, Flag } from 'lucide-react';
-
 interface Driver {
   position: string;
   points: string;
@@ -16,7 +15,6 @@ interface Driver {
     name: string;
   }>;
 }
-
 interface StandingsData {
   season: string;
   round: string;
@@ -46,16 +44,14 @@ const getDriverImageUrl = (driverId: string, familyName: string) => {
     gasly: 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png',
     bortoleto: 'https://media.formula1.com/content/dam/fom-website/drivers/G/GRABBOR01_Gabriel_Bortoleto/grabbor01.png',
     colapinto: 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png',
-    doohan: 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png',
+    doohan: 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png'
   };
   return driverImageMap[driverId] || null;
 };
-
 export function F1Championship() {
   const [standings, setStandings] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchStandings = async () => {
       try {
@@ -69,32 +65,24 @@ export function F1Championship() {
         setLoading(false);
       }
     };
-
     fetchStandings();
   }, []);
-
   if (loading) {
-    return (
-      <div className="py-20 bg-gradient-to-b from-background to-muted/30">
+    return <div className="py-20 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-6 text-center">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-64 mx-auto mb-4"></div>
             <div className="h-40 bg-muted rounded-xl max-w-md mx-auto"></div>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error || !standings) {
     return null;
   }
-
   const leader = standings.DriverStandings[0];
   const topThree = standings.DriverStandings.slice(0, 3);
-
-  return (
-    <div className="py-20 bg-gradient-to-b from-background to-muted/30 overflow-hidden">
+  return <div className="py-20 bg-gradient-to-b from-background to-muted/30 overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
@@ -112,14 +100,9 @@ export function F1Championship() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
-                  <img
-                    src={getDriverImageUrl(leader.Driver.driverId, leader.Driver.familyName) || ''}
-                    alt={`${leader.Driver.givenName} ${leader.Driver.familyName}`}
-                    className="w-full h-full rounded-full object-cover object-top bg-yellow-500/20"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+                  <img src={getDriverImageUrl(leader.Driver.driverId, leader.Driver.familyName) || ''} alt={`${leader.Driver.givenName} ${leader.Driver.familyName}`} className="w-full h-full rounded-full object-cover object-top bg-yellow-500/20" onError={e => {
+                  e.currentTarget.style.display = 'none';
+                }} />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
                   1
@@ -150,46 +133,15 @@ export function F1Championship() {
 
         {/* Top 3 */}
         <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          {topThree.map((driver, index) => (
-            <div
-              key={driver.Driver.code}
-              className={`relative p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
-                index === 0
-                  ? 'bg-yellow-500/10 border-yellow-500/30'
-                  : index === 1
-                  ? 'bg-slate-400/10 border-slate-400/30'
-                  : 'bg-amber-700/10 border-amber-700/30'
-              }`}
-            >
+          {topThree.map((driver, index) => <div key={driver.Driver.code} className={`relative p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${index === 0 ? 'bg-yellow-500/10 border-yellow-500/30' : index === 1 ? 'bg-slate-400/10 border-slate-400/30' : 'bg-amber-700/10 border-amber-700/30'}`}>
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div
-                    className={`w-14 h-14 rounded-full p-0.5 ${
-                      index === 0
-                        ? 'bg-gradient-to-br from-yellow-400 to-amber-600'
-                        : index === 1
-                        ? 'bg-gradient-to-br from-slate-300 to-slate-500'
-                        : 'bg-gradient-to-br from-amber-600 to-amber-800'
-                    }`}
-                  >
-                    <img
-                      src={getDriverImageUrl(driver.Driver.driverId, driver.Driver.familyName) || ''}
-                      alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
-                      className="w-full h-full rounded-full object-cover object-top bg-muted"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                  <div className={`w-14 h-14 rounded-full p-0.5 ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600' : index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500' : 'bg-gradient-to-br from-amber-600 to-amber-800'}`}>
+                    <img src={getDriverImageUrl(driver.Driver.driverId, driver.Driver.familyName) || ''} alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} className="w-full h-full rounded-full object-cover object-top bg-muted" onError={e => {
+                  e.currentTarget.style.display = 'none';
+                }} />
                   </div>
-                  <div
-                    className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      index === 0
-                        ? 'bg-yellow-500 text-black'
-                        : index === 1
-                        ? 'bg-slate-400 text-black'
-                        : 'bg-amber-700 text-white'
-                    }`}
-                  >
+                  <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-black' : index === 1 ? 'bg-slate-400 text-black' : 'bg-amber-700 text-white'}`}>
                     {driver.position}
                   </div>
                 </div>
@@ -206,14 +158,11 @@ export function F1Championship() {
                   <p className="text-xs text-muted-foreground">pts</p>
                 </div>
               </div>
-            </div>
-          ))}
+            </div>)}
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Data provided by Ergast F1 API
-        </p>
+      </p>
       </div>
-    </div>
-  );
+    </div>;
 }
