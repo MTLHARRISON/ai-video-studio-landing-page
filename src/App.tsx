@@ -6,6 +6,7 @@ import { Services } from './components/Services'
 import { Team } from './components/Team'
 import { Contact } from './components/Contact'
 import { Footer } from './components/Footer'
+import { F1Championship } from './components/F1Championship'
 
 export default function App() {
   return (
@@ -13,6 +14,9 @@ export default function App() {
       <main className="relative" role="main" style={{ overflow: 'visible' }}>
         <section id="hero" aria-label="Hero section">
           <Hero />
+        </section>
+        <section id="f1-championship" aria-label="F1 Championship section">
+          <F1Championship />
         </section>
         <section id="portfolio" aria-label="Portfolio section">
           <Portfolio />
