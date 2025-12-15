@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Flag, Award } from 'lucide-react';
+import { Trophy, Flag } from 'lucide-react';
 
 interface Driver {
   position: string;
@@ -10,6 +10,7 @@ interface Driver {
     familyName: string;
     nationality: string;
     code: string;
+    driverId: string;
   };
   Constructors: Array<{
     name: string;
@@ -21,6 +22,34 @@ interface StandingsData {
   round: string;
   DriverStandings: Driver[];
 }
+
+// Map driver IDs to their official F1 image URLs
+const getDriverImageUrl = (driverId: string, familyName: string) => {
+  const driverImageMap: Record<string, string> = {
+    norris: 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png',
+    max_verstappen: 'https://media.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png',
+    piastri: 'https://media.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png',
+    russell: 'https://media.formula1.com/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png',
+    leclerc: 'https://media.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png',
+    hamilton: 'https://media.formula1.com/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png',
+    antonelli: 'https://media.formula1.com/content/dam/fom-website/drivers/A/ANDANT01_Andrea%20Kimi_Antonelli/andant01.png',
+    albon: 'https://media.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png',
+    sainz: 'https://media.formula1.com/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png',
+    alonso: 'https://media.formula1.com/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png',
+    hulkenberg: 'https://media.formula1.com/content/dam/fom-website/drivers/N/NICHUL01_Nico_Hulkenberg/nichul01.png',
+    hadjar: 'https://media.formula1.com/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png',
+    bearman: 'https://media.formula1.com/content/dam/fom-website/drivers/O/OLIBEA01_Oliver_Bearman/olibea01.png',
+    lawson: 'https://media.formula1.com/content/dam/fom-website/drivers/L/LIALAW01_Liam_Lawson/lialaw01.png',
+    ocon: 'https://media.formula1.com/content/dam/fom-website/drivers/E/ESTOCO01_Esteban_Ocon/estoco01.png',
+    stroll: 'https://media.formula1.com/content/dam/fom-website/drivers/L/LANSTR01_Lance_Stroll/lanstr01.png',
+    tsunoda: 'https://media.formula1.com/content/dam/fom-website/drivers/Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png',
+    gasly: 'https://media.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png',
+    bortoleto: 'https://media.formula1.com/content/dam/fom-website/drivers/G/GRABBOR01_Gabriel_Bortoleto/grabbor01.png',
+    colapinto: 'https://media.formula1.com/content/dam/fom-website/drivers/F/FRACOL01_Franco_Colapinto/fracol01.png',
+    doohan: 'https://media.formula1.com/content/dam/fom-website/drivers/J/JACDOO01_Jack_Doohan/jacdoo01.png',
+  };
+  return driverImageMap[driverId] || null;
+};
 
 export function F1Championship() {
   const [standings, setStandings] = useState<StandingsData | null>(null);
@@ -84,8 +113,20 @@ export function F1Championship() {
               <Trophy className="w-12 h-12 text-yellow-500/50" />
             </div>
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-3xl font-bold text-black">
-                1
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
+                  <img
+                    src={getDriverImageUrl(leader.Driver.driverId, leader.Driver.familyName) || ''}
+                    alt={`${leader.Driver.givenName} ${leader.Driver.familyName}`}
+                    className="w-full h-full rounded-full object-cover object-top bg-yellow-500/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
+                  1
+                </div>
               </div>
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
@@ -121,16 +162,36 @@ export function F1Championship() {
               }`}
             >
               <div className="flex items-center gap-4">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
-                    index === 0
-                      ? 'bg-yellow-500 text-black'
-                      : index === 1
-                      ? 'bg-slate-400 text-black'
-                      : 'bg-amber-700 text-white'
-                  }`}
-                >
-                  {driver.position}
+                <div className="relative">
+                  <div
+                    className={`w-14 h-14 rounded-full p-0.5 ${
+                      index === 0
+                        ? 'bg-gradient-to-br from-yellow-400 to-amber-600'
+                        : index === 1
+                        ? 'bg-gradient-to-br from-slate-300 to-slate-500'
+                        : 'bg-gradient-to-br from-amber-600 to-amber-800'
+                    }`}
+                  >
+                    <img
+                      src={getDriverImageUrl(driver.Driver.driverId, driver.Driver.familyName) || ''}
+                      alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
+                      className="w-full h-full rounded-full object-cover object-top bg-muted"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div
+                    className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      index === 0
+                        ? 'bg-yellow-500 text-black'
+                        : index === 1
+                        ? 'bg-slate-400 text-black'
+                        : 'bg-amber-700 text-white'
+                    }`}
+                  >
+                    {driver.position}
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-foreground truncate">
