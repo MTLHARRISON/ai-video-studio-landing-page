@@ -109,9 +109,6 @@ export function F1Championship() {
         {/* Leader Card */}
         <div className="max-w-2xl mx-auto mb-8">
           <div className="relative bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border border-yellow-500/30 rounded-2xl p-8 backdrop-blur-sm">
-            <div className="absolute top-4 right-4">
-              <Trophy className="w-12 h-12 text-yellow-500/50" />
-            </div>
             <div className="flex items-center gap-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
@@ -139,10 +136,13 @@ export function F1Championship() {
                   {leader.Constructors[0]?.name} • {leader.Driver.nationality}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-4xl font-bold text-foreground">{leader.points}</p>
-                <p className="text-sm text-muted-foreground">points</p>
-                <p className="text-sm text-primary mt-1">{leader.wins} wins</p>
+              <div className="text-right flex items-center gap-3">
+                <Trophy className="w-10 h-10 text-yellow-500" />
+                <div>
+                  <p className="text-4xl font-bold text-foreground">{leader.points}</p>
+                  <p className="text-sm text-muted-foreground">points</p>
+                  <p className="text-sm text-primary mt-1">{leader.wins} wins</p>
+                </div>
               </div>
             </div>
           </div>
