@@ -9,11 +9,11 @@ export function Hero() {
       {/* F1 Background Video (YouTube embed) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <iframe
-          className="w-full h-full object-cover scale-110"
-          src="https://www.youtube.com/embed/iwB0_lview4?autoplay=1&mute=1&controls=0&loop=1&playlist=gT3Rl_B14do&modestbranding=1&rel=0&playsinline=1"
-          title="F1 hero video"
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          allowFullScreen
+          className="absolute inset-0 w-full h-full object-cover scale-110"
+          src="https://www.youtube-nocookie.com/embed/gT3Rl_B14do?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1"
+          title="Hero background video"
+          allow="autoplay; encrypted-media"
+          style={{ pointerEvents: 'none' }}
         />
       </div>
 
