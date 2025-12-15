@@ -4,7 +4,7 @@ export default function App() {
   return <div className="min-h-screen bg-background text-foreground">
       <main className="relative" role="main">
         <section id="hero" aria-label="Hero section">
-          <Hero className="bg-card rounded-none" />
+          <Hero className="rounded-none bg-accent-purple shadow-xl text-primary" />
         </section>
         <section id="f1-championship" aria-label="F1 Championship section">
           <F1Championship />
