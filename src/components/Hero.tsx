@@ -10,7 +10,7 @@ export function Hero() {
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <iframe
           className="w-full h-full object-cover scale-110"
-          src="https://www.youtube.com/embed/hMtOmZYLEOQ?autoplay=1&controls=0&mute=1&loop=1&playlist=hMtOmZYLEOQ&modestbranding=1&rel=0"
+          src="https://www.youtube.com/embed/gT3Rl_B14do?autoplay=1&controls=0&mute=1&loop=1&playlist=hMtOmZYLEOQ&modestbranding=1&rel=0"
           title="F1 hero video"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
