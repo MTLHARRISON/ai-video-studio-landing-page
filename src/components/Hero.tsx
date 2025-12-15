@@ -6,17 +6,16 @@ import { Flag } from 'lucide-react'
 export function Hero() {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
-      {/* F1 Background Video */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover scale-110"
-        autoPlay
-        muted
-        loop
-        playsInline
-      >
-        <source src="https://cdn.pixabay.com/video/2020/07/30/45913-446624039_large.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      {/* F1 Background Video (YouTube embed) */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <iframe
+          className="w-full h-full object-cover scale-110"
+          src="https://www.youtube.com/embed/hMtOmZYLEOQ?autoplay=1&controls=0&mute=1&loop=1&playlist=hMtOmZYLEOQ&modestbranding=1&rel=0"
+          title="F1 hero video"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+        />
+      </div>
 
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/50" />
