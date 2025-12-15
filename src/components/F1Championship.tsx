@@ -137,7 +137,7 @@ export function F1Championship() {
                 </p>
               </div>
               <div className="text-right flex items-center gap-3">
-                <Trophy className="w-14 h-14 text-yellow-500" />
+                <Trophy className="w-20 h-20 text-yellow-500" />
                 <div>
                   <p className="text-4xl font-bold text-foreground">{leader.points}</p>
                   <p className="text-sm text-muted-foreground">points</p>
