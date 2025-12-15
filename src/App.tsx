@@ -1,10 +1,12 @@
-import { Hero } from './components/Hero';
-import { F1Championship } from './components/F1Championship';
+import { Hero } from './components/Hero'
+import { F1Championship } from './components/F1Championship'
+
 export default function App() {
-  return <div className="min-h-screen bg-background text-foreground">
+  return (
+    <div className="min-h-screen bg-background text-foreground">
       <main className="relative" role="main">
         <section id="hero" aria-label="Hero section">
-          <Hero className="rounded-none bg-accent-purple shadow-xl text-primary" />
+          <Hero />
         </section>
         <section id="f1-championship" aria-label="F1 Championship section">
           <F1Championship />
@@ -17,5 +19,6 @@ export default function App() {
           <p>F1 Championship Tracker • Data from Ergast F1 API</p>
         </div>
       </footer>
-    </div>;
+    </div>
+  )
 }
