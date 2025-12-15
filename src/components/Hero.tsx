@@ -2,18 +2,18 @@
 
 import { motion } from 'framer-motion'
 import { Flag } from 'lucide-react'
+import heroImg from '../img/hero.jpg' // added import
 
 export function Hero() {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
-      {/* F1 Background Video (YouTube embed) */}
+      {/* F1 Background Video (replaced with local hero image) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
-        <iframe
-          className="absolute inset-0 w-full h-full object-cover scale-110"
-          src="https://www.youtube-nocookie.com/embed/gT3Rl_B14do?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1"
-          title="Hero background video"
-          allow="autoplay; encrypted-media"
-          style={{ pointerEvents: 'none' }}
+        <div
+          className="absolute inset-0 w-full h-full bg-center bg-cover scale-110"
+          style={{ backgroundImage: `url(${heroImg})` }}
+          role="img"
+          aria-label="Hero background"
         />
       </div>
 
