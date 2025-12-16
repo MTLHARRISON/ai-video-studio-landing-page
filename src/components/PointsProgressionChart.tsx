@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useTrackSelection } from '../lib/trackSelection';
 
 interface RaceResult {
   round: string;
@@ -35,6 +36,7 @@ const CONSTRUCTOR_COLORS: Record<string, string> = {
 export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ driverId: string; name: string; constructor: string }> }) {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setSelectedRound } = useTrackSelection();
 
   useEffect(() => {
     const fetchAllRaceResults = async () => {
@@ -149,8 +151,24 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
               name={driver.name}
               stroke={getConstructorColor(driver.constructor)}
               strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (cx == null || cy == null || !payload) return null;
+                const roundStr = String(payload.round || '');
+                const roundNum = parseInt(roundStr.replace(/^R/i, ''), 10) || null;
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={4}
+                    fill="white"
+                    stroke="none"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedRound(roundNum)}
+                  />
+                );
+              }}
+              activeDot={{ r: 6 }}
             />
           ))}
         </LineChart>

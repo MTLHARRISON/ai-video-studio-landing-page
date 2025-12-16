@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
+import { useTrackSelection } from '../lib/trackSelection';
 
 // Import local track images from /src/img/tracks/
 // All images follow the naming convention: {Country}_Circuit.avif
@@ -347,6 +348,7 @@ export function TrackCarousel() {
   });
   
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const { selectedRound } = useTrackSelection();
 
   // Fetch track images - try SportMonks first, fallback to F1 media
   useEffect(() => {
@@ -468,6 +470,22 @@ export function TrackCarousel() {
     emblaApi.on('select', onSelect);
     return () => { emblaApi.off('select', onSelect); };
   }, [emblaApi]);
+
+  // If another component (eg. PointsProgressionChart) selects a round, scroll carousel to that round
+  useEffect(() => {
+    if (!emblaApi || !races || races.length === 0) return;
+    if (selectedRound == null) return;
+
+    const targetIndex = races.findIndex(r => Number(r.round) === Number(selectedRound));
+    if (targetIndex !== -1) {
+      try {
+        emblaApi.scrollTo(targetIndex);
+        setSelectedIndex(targetIndex);
+      } catch (err) {
+        // ignore
+      }
+    }
+  }, [selectedRound, emblaApi, races]);
 
   // Handle swipe gestures: two-finger on desktop/laptop, single-finger on mobile
   useEffect(() => {

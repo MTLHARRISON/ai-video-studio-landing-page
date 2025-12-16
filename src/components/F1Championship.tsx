@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Trophy, Flag, TrendingUp, Users } from 'lucide-react';
 import { PointsProgressionChart } from './PointsProgressionChart';
+import { TrackSelectionProvider } from '../lib/trackSelection';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface Driver {
@@ -391,15 +392,17 @@ export function F1Championship() {
                 </div>
 
                 {/* Points Progression Chart */}
-                <div className="max-w-4xl mx-auto mb-8">
-                  <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-4">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
+                <TrackSelectionProvider>
+                  <div className="max-w-4xl mx-auto mb-8">
+                    <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
+                      </div>
+                      <PointsProgressionChart topDrivers={topDriversForChart} />
                     </div>
-                    <PointsProgressionChart topDrivers={topDriversForChart} />
                   </div>
-                </div>
+                </TrackSelectionProvider>
               </>
             )}
           </TabsContent>
