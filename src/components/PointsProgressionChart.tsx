@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface RaceResult {
   round: string;
@@ -32,34 +32,9 @@ const CONSTRUCTOR_COLORS: Record<string, string> = {
   rb: '#6692FF',
 };
 
-export function PointsProgressionChart({ topDrivers, highlightedRound, onRoundClick }: { topDrivers: Array<{ driverId: string; name: string; constructor: string }>, highlightedRound?: string | null, onRoundClick?: (round: string | null) => void }) {
+export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ driverId: string; name: string; constructor: string }> }) {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Customized tick that highlights the selected round and supports clicking
-  const customizedTick = (props: any) => {
-    const { x, y, payload } = props;
-    const value = payload?.value as string;
-    const isHighlighted = highlightedRound && value === `R${highlightedRound}`;
-    const fill = isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))';
-    const fontWeight = isHighlighted ? 700 : 400;
-    const isInteractable = typeof onRoundClick === 'function';
-
-    return (
-      <text
-        x={x}
-        y={y + 15}
-        textAnchor="middle"
-        fill={fill}
-        fontSize={12}
-        fontWeight={fontWeight}
-        style={{ cursor: isInteractable ? 'pointer' : 'default' }}
-        onClick={() => isInteractable && onRoundClick(value.replace(/^R/, ''))}
-      >
-        {value}
-      </text>
-    );
-  };
 
   useEffect(() => {
     const fetchAllRaceResults = async () => {
@@ -75,7 +50,7 @@ export function PointsProgressionChart({ topDrivers, highlightedRound, onRoundCl
           const data = await response.json();
           total = parseInt(data.MRData.total);
           const races: RaceResult[] = data.MRData.RaceTable.Races;
-
+          
           // Merge races by round
           races.forEach(race => {
             const existingRace = allRaces.find(r => r.round === race.round);
@@ -85,7 +60,7 @@ export function PointsProgressionChart({ topDrivers, highlightedRound, onRoundCl
               allRaces.push(race);
             }
           });
-
+          
           offset += limit;
         }
 
@@ -143,23 +118,20 @@ export function PointsProgressionChart({ topDrivers, highlightedRound, onRoundCl
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis
-            dataKey="round"
-            stroke="hsl(var(--muted-foreground))"
-            fontSize={12}
-            tick={customizedTick}
-          />
-          {highlightedRound ? (
-            <ReferenceLine x={`R${highlightedRound}`} stroke="hsl(var(--primary))" strokeWidth={2} strokeOpacity={0.95} />
-          ) : null}
-          <YAxis
-            stroke="hsl(var(--muted-foreground))"
+          <XAxis 
+            dataKey="round" 
+            stroke="hsl(var(--muted-foreground))" 
             fontSize={12}
             tick={{ fill: 'hsl(var(--muted-foreground))' }}
           />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: 'hsl(var(--card) / 0.7)',
+          <YAxis 
+            stroke="hsl(var(--muted-foreground))" 
+            fontSize={12}
+            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'hsl(var(--card) / 0.7)', 
               backdropFilter: 'blur(15px)',
               WebkitBackdropFilter: 'blur(15px)',
               border: '1px solid hsl(var(--border) / 0.4)',

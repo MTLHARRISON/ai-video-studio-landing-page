@@ -75,41 +75,41 @@ const getConstructorLogoUrl = (constructorId: string, constructorName: string): 
   // Try 2025 first, fallback to 2024 if needed
   const currentYear = '2025';
   const fallbackYear = '2024';
-
+  
   const logoMap: Record<string, string> = {
     // McLaren
     mclaren: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/mclaren.png`,
-
+    
     // Red Bull
     red_bull: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/red-bull-racing.png`,
     redbull: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/red-bull-racing.png`,
-
+    
     // Ferrari
     ferrari: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/ferrari.png`,
-
+    
     // Mercedes
     mercedes: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/mercedes.png`,
-
+    
     // Aston Martin
     aston_martin: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/aston-martin.png`,
     'aston martin': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/aston-martin.png`,
-
+    
     // Alpine
     alpine: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/alpine.png`,
-
+    
     // Williams
     williams: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/williams.png`,
-
+    
     // Haas
     haas: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/haas-f1-team.png`,
     'haas f1 team': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/haas-f1-team.png`,
-
+    
     // Sauber / Kick Sauber / Stake F1 Team / Audi
     sauber: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
     'kick sauber': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
     'stake f1 team kick sauber': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
     audi: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
-
+    
     // RB / Visa Cash App RB / VCARB
     rb: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
     'rb f1 team': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
@@ -161,24 +161,24 @@ const getConstructorColor = (constructorName: string): string => {
     'RB F1 Team': '#6692FF',
     'Visa Cash App RB': '#6692FF',
   };
-
+  
   // Try exact match first
   if (colorMap[constructorName]) {
     return colorMap[constructorName];
   }
-
+  
   // Try partial match
   for (const [key, value] of Object.entries(colorMap)) {
     if (constructorName.includes(key) || key.includes(constructorName)) {
       return value;
     }
   }
-
+  
   // Default color
   return '#6B7280';
 };
 
-export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound?: string | null, onRoundSelect?: (round: string | null) => void }) {
+export function F1Championship() {
   const [standings, setStandings] = useState<StandingsData | null>(null);
   const [constructorStandings, setConstructorStandings] = useState<ConstructorStandingsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -397,7 +397,7 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                       <TrendingUp className="w-5 h-5 text-primary" />
                       <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
                     </div>
-                    <PointsProgressionChart topDrivers={topDriversForChart} highlightedRound={selectedRound} onRoundClick={onRoundSelect} />
+                    <PointsProgressionChart topDrivers={topDriversForChart} />
                   </div>
                 </div>
               </>
@@ -417,7 +417,7 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                   const leaderLogo = getConstructorLogoUrl(constructorLeader.Constructor.constructorId, constructorLeader.Constructor.name);
                   return (
                     <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
-                      <div
+                      <div 
                         className="relative border rounded-2xl p-4 sm:p-8 backdrop-blur-sm"
                         style={{
                           background: `linear-gradient(to bottom right, ${leaderColor}20, ${leaderColor}10, ${leaderColor}15)`,
@@ -426,7 +426,7 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                       >
                         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                           <div className="relative">
-                            <div
+                            <div 
                               className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl p-2 bg-white"
                               style={{
                                 background: `linear-gradient(to bottom right, ${leaderColor}15, white)`,
@@ -447,14 +447,14 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                                   }}
                                 />
                               ) : null}
-                              <div
+                              <div 
                                 className={`w-full h-full rounded-lg flex items-center justify-center text-white text-2xl sm:text-3xl font-bold ${leaderLogo ? 'constructor-fallback hidden' : ''}`}
                                 style={{ backgroundColor: `${leaderColor}80` }}
                               >
                                 {constructorLeader.Constructor.name.charAt(0)}
                               </div>
                             </div>
-                            <div
+                            <div 
                               className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg"
                               style={{ backgroundColor: leaderColor }}
                             >
@@ -525,7 +525,7 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                                   }}
                                 />
                               ) : null}
-                              <div
+                              <div 
                                 className={`w-full h-full rounded-md flex items-center justify-center text-white font-bold text-sm sm:text-base ${constructorLogo ? 'constructor-fallback hidden' : ''}`}
                                 style={{ backgroundColor: `${constructorColor}cc` }}
                               >
@@ -603,7 +603,7 @@ export function F1Championship({ selectedRound, onRoundSelect }: { selectedRound
                                       }}
                                     />
                                   ) : null}
-                                  <div
+                                  <div 
                                     className={`w-full h-full rounded-sm flex items-center justify-center text-white font-bold text-xs ${constructorLogo ? 'constructor-fallback hidden' : ''}`}
                                     style={{ backgroundColor: `${constructorColor}cc` }}
                                   >
