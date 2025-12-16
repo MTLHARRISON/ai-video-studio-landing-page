@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Flag, TrendingUp } from 'lucide-react';
+import { Trophy, Flag, TrendingUp, Users } from 'lucide-react';
 import { PointsProgressionChart } from './PointsProgressionChart';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface Driver {
   position: string;
@@ -18,10 +19,27 @@ interface Driver {
   }>;
 }
 
+interface Constructor {
+  position: string;
+  points: string;
+  wins: string;
+  Constructor: {
+    constructorId: string;
+    name: string;
+    nationality: string;
+  };
+}
+
 interface StandingsData {
   season: string;
   round: string;
   DriverStandings: Driver[];
+}
+
+interface ConstructorStandingsData {
+  season: string;
+  round: string;
+  ConstructorStandings: Constructor[];
 }
 
 // Map driver IDs to their official F1 image URLs
@@ -52,10 +70,47 @@ const getDriverImageUrl = (driverId: string, familyName: string) => {
   return driverImageMap[driverId] || null;
 };
 
+// Map constructor names to their brand colors
+const getConstructorColor = (constructorName: string): string => {
+  const colorMap: Record<string, string> = {
+    'McLaren': '#FF8000',
+    'Red Bull': '#3671C6',
+    'Ferrari': '#E80020',
+    'Mercedes': '#27F4D2',
+    'Aston Martin': '#229971',
+    'Alpine': '#0093CC',
+    'Williams': '#64C4FF',
+    'Haas F1 Team': '#B6BABD',
+    'Haas': '#B6BABD',
+    'Kick Sauber': '#52E252',
+    'Sauber': '#52E252',
+    'RB': '#6692FF',
+    'RB F1 Team': '#6692FF',
+  };
+  
+  // Try exact match first
+  if (colorMap[constructorName]) {
+    return colorMap[constructorName];
+  }
+  
+  // Try partial match
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (constructorName.includes(key) || key.includes(constructorName)) {
+      return value;
+    }
+  }
+  
+  // Default color
+  return '#6B7280';
+};
+
 export function F1Championship() {
   const [standings, setStandings] = useState<StandingsData | null>(null);
+  const [constructorStandings, setConstructorStandings] = useState<ConstructorStandingsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [constructorLoading, setConstructorLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [constructorError, setConstructorError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStandings = async () => {
@@ -65,16 +120,32 @@ export function F1Championship() {
         const standingsList = data.MRData.StandingsTable.StandingsLists[0];
         setStandings(standingsList);
       } catch (err) {
-        setError('Failed to load F1 standings');
+        setError('Failed to load F1 driver standings');
       } finally {
         setLoading(false);
       }
     };
 
+    const fetchConstructorStandings = async () => {
+      try {
+        const response = await fetch('https://api.jolpi.ca/ergast/f1/current/constructorstandings.json');
+        const data = await response.json();
+        const standingsList = data.MRData.StandingsTable.StandingsLists[0];
+        setConstructorStandings(standingsList);
+      } catch (err) {
+        setConstructorError('Failed to load F1 constructor standings');
+      } finally {
+        setConstructorLoading(false);
+      }
+    };
+
     fetchStandings();
+    fetchConstructorStandings();
   }, []);
 
-  if (loading) {
+  const isLoading = loading || constructorLoading;
+
+  if (isLoading) {
     return (
       <div className="py-12 sm:py-20 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-4 sm:px-6 text-center">
@@ -87,14 +158,20 @@ export function F1Championship() {
     );
   }
 
-  if (error || !standings) {
+  if ((error || !standings) && (constructorError || !constructorStandings)) {
     return null;
   }
 
-  const leader = standings.DriverStandings[0];
-  const topThree = standings.DriverStandings.slice(0, 3);
+  const season = standings?.season || constructorStandings?.season || '';
+  const round = standings?.round || constructorStandings?.round || '';
 
-  const topDriversForChart = topThree.map(d => ({
+  const driverLeader = standings?.DriverStandings[0];
+  const topThreeDrivers = standings?.DriverStandings.slice(0, 3) || [];
+
+  const constructorLeader = constructorStandings?.ConstructorStandings[0];
+  const topThreeConstructors = constructorStandings?.ConstructorStandings.slice(0, 3) || [];
+
+  const topDriversForChart = topThreeDrivers.map(d => ({
     driverId: d.Driver.driverId,
     name: `${d.Driver.givenName} ${d.Driver.familyName}`,
     constructor: d.Constructors[0]?.name || ''
@@ -106,58 +183,80 @@ export function F1Championship() {
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
-            {standings.season} Season • Round {standings.round}
+            {season} Season • Round {round}
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">
             F1 Championship Standings
           </h2>
         </div>
 
-        {/* Leader Card - Mobile Optimized */}
-        <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
-          <div className="relative bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border border-yellow-500/30 rounded-2xl p-4 sm:p-8 backdrop-blur-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <div className="relative">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
-                  <img
-                    src={getDriverImageUrl(leader.Driver.driverId, leader.Driver.familyName) || ''}
-                    alt={`${leader.Driver.givenName} ${leader.Driver.familyName}`}
-                    className="w-full h-full rounded-full object-cover object-top bg-yellow-500/20"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
-                  1
-                </div>
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider mb-1">
-                  Championship Leader
-                </p>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                  {leader.Driver.givenName} {leader.Driver.familyName}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {leader.Constructors[0]?.name} • {leader.Driver.nationality}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 sm:text-right">
-                <Trophy className="w-14 h-14 sm:w-20 sm:h-20 text-yellow-500" />
-                <div>
-                  <p className="text-3xl sm:text-4xl font-bold text-foreground">{leader.points}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">points</p>
-                  <p className="text-xs sm:text-sm text-primary mt-1">{leader.wins} wins</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Tabs defaultValue="drivers" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+            <TabsTrigger value="drivers" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Drivers
+            </TabsTrigger>
+            <TabsTrigger value="constructors" className="flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Constructors
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Top 3 - Mobile Optimized */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-8 sm:mb-12">
-          {topThree.map((driver, index) => (
+          <TabsContent value="drivers" className="mt-0">
+            {error || !standings ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Failed to load driver standings
+              </div>
+            ) : (
+              <>
+
+                {/* Driver Leader Card - Mobile Optimized */}
+                {driverLeader && (
+                  <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
+                    <div className="relative bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border border-yellow-500/30 rounded-2xl p-4 sm:p-8 backdrop-blur-sm">
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                        <div className="relative">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
+                            <img
+                              src={getDriverImageUrl(driverLeader.Driver.driverId, driverLeader.Driver.familyName) || ''}
+                              alt={`${driverLeader.Driver.givenName} ${driverLeader.Driver.familyName}`}
+                              className="w-full h-full rounded-full object-cover object-top bg-yellow-500/20"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
+                            1
+                          </div>
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider mb-1">
+                            Championship Leader
+                          </p>
+                          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+                            {driverLeader.Driver.givenName} {driverLeader.Driver.familyName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {driverLeader.Constructors[0]?.name} • {driverLeader.Driver.nationality}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 sm:text-right">
+                          <Trophy className="w-14 h-14 sm:w-20 sm:h-20 text-yellow-500" />
+                          <div>
+                            <p className="text-3xl sm:text-4xl font-bold text-foreground">{driverLeader.points}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">points</p>
+                            <p className="text-xs sm:text-sm text-primary mt-1">{driverLeader.wins} wins</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Top 3 Drivers - Mobile Optimized */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-8 sm:mb-12">
+                  {topThreeDrivers.map((driver, index) => (
             <div
               key={driver.Driver.code}
               className={`relative p-4 sm:p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
@@ -214,19 +313,190 @@ export function F1Championship() {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+                  ))}
+                </div>
 
-        {/* Points Progression Chart */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
-            </div>
-            <PointsProgressionChart topDrivers={topDriversForChart} />
-          </div>
-        </div>
+                {/* Points Progression Chart */}
+                <div className="max-w-4xl mx-auto mb-8">
+                  <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
+                    </div>
+                    <PointsProgressionChart topDrivers={topDriversForChart} />
+                  </div>
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="constructors" className="mt-0">
+            {constructorError || !constructorStandings ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Failed to load constructor standings
+              </div>
+            ) : (
+              <>
+                {/* Constructor Leader Card - Mobile Optimized */}
+                {constructorLeader && (() => {
+                  const leaderColor = getConstructorColor(constructorLeader.Constructor.name);
+                  return (
+                    <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
+                      <div 
+                        className="relative border rounded-2xl p-4 sm:p-8 backdrop-blur-sm"
+                        style={{
+                          background: `linear-gradient(to bottom right, ${leaderColor}20, ${leaderColor}10, ${leaderColor}15)`,
+                          borderColor: `${leaderColor}50`
+                        }}
+                      >
+                        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                          <div className="relative">
+                            <div 
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1"
+                              style={{
+                                background: `linear-gradient(to bottom right, ${leaderColor}, ${leaderColor}dd)`
+                              }}
+                            >
+                              <div 
+                                className="w-full h-full rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold"
+                                style={{ backgroundColor: `${leaderColor}80` }}
+                              >
+                                {constructorLeader.Constructor.name.charAt(0)}
+                              </div>
+                            </div>
+                            <div 
+                              className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                              style={{ backgroundColor: leaderColor }}
+                            >
+                              1
+                            </div>
+                          </div>
+                          <div className="flex-1 text-center sm:text-left">
+                            <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider mb-1">
+                              Championship Leader
+                            </p>
+                            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+                              {constructorLeader.Constructor.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {constructorLeader.Constructor.nationality}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 sm:text-right">
+                            <Trophy className="w-14 h-14 sm:w-20 sm:h-20" style={{ color: leaderColor }} />
+                            <div>
+                              <p className="text-3xl sm:text-4xl font-bold text-foreground">{constructorLeader.points}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">points</p>
+                              <p className="text-xs sm:text-sm mt-1" style={{ color: leaderColor }}>
+                                {constructorLeader.wins} wins
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Top 3 Constructors - Mobile Optimized */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-8 sm:mb-12">
+                  {topThreeConstructors.map((constructor, index) => {
+                    const constructorColor = getConstructorColor(constructor.Constructor.name);
+                    return (
+                      <div
+                        key={constructor.Constructor.constructorId}
+                        className="relative p-4 sm:p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105"
+                        style={{
+                          background: `${constructorColor}15`,
+                          borderColor: `${constructorColor}40`
+                        }}
+                      >
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="relative">
+                            <div
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full p-0.5"
+                              style={{
+                                background: `linear-gradient(to bottom right, ${constructorColor}, ${constructorColor}dd)`
+                              }}
+                            >
+                              <div 
+                                className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base"
+                                style={{ backgroundColor: `${constructorColor}cc` }}
+                              >
+                                {constructor.Constructor.name.charAt(0)}
+                              </div>
+                            </div>
+                            <div
+                              className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                              style={{ backgroundColor: constructorColor }}
+                            >
+                              {constructor.position}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground truncate text-sm sm:text-base">
+                              {constructor.Constructor.name}
+                            </p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {constructor.Constructor.nationality}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-foreground text-sm sm:text-base">{constructor.points}</p>
+                            <p className="text-xs text-muted-foreground">pts</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Full Constructor Standings Table */}
+                <div className="max-w-4xl mx-auto mb-8">
+                  <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-4">Full Standings</h3>
+                    <div className="space-y-2">
+                      {constructorStandings.ConstructorStandings.map((constructor) => {
+                        const constructorColor = getConstructorColor(constructor.Constructor.name);
+                        return (
+                          <div
+                            key={constructor.Constructor.constructorId}
+                            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border transition-all hover:scale-[1.02]"
+                            style={{
+                              background: `${constructorColor}08`,
+                              borderColor: `${constructorColor}30`
+                            }}
+                          >
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                              <div
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0"
+                                style={{ backgroundColor: constructorColor }}
+                              >
+                                {constructor.position}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground truncate text-sm sm:text-base">
+                                  {constructor.Constructor.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {constructor.Constructor.nationality} • {constructor.wins} wins
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-bold text-foreground text-base sm:text-lg">{constructor.points}</p>
+                              <p className="text-xs text-muted-foreground">points</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <p className="text-center text-xs text-muted-foreground">
           Data provided by Ergast F1 API
