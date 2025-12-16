@@ -1,5 +1,6 @@
 import { Hero } from './components/Hero'
 import { F1Championship } from './components/F1Championship'
+import { TrackCarousel } from './components/TrackCarousel'
 
 export default function App() {
   return (
@@ -10,6 +11,9 @@ export default function App() {
         </section>
         <section id="f1-championship" aria-label="F1 Championship section">
           <F1Championship />
+        </section>
+        <section id="track-carousel" aria-label="Track Carousel section">
+          <TrackCarousel />
         </section>
       </main>
       
