@@ -2,81 +2,80 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 
-// Import local track images
-// Note: Add image files to /src/img/tracks/ directory as you obtain them
-// Naming convention: {CircuitName}.{ext} (e.g., Brazil.avif, Monaco.png, etc.)
+// Import local track images from /src/img/tracks/
+// All images follow the naming convention: {Country}_Circuit.avif
 
 // Australian Grand Prix
-// import albertParkTrack from '../img/tracks/AlbertPark.avif';
+import australiaTrack from '../img/tracks/Australia_Circuit.avif';
 
 // Chinese Grand Prix
-// import shanghaiTrack from '../img/tracks/Shanghai.avif';
+import chinaTrack from '../img/tracks/China_Circuit.avif';
 
 // Japanese Grand Prix
-// import suzukaTrack from '../img/tracks/Suzuka.avif';
+import japanTrack from '../img/tracks/Japan_Circuit.avif';
 
 // Bahrain Grand Prix
-// import bahrainTrack from '../img/tracks/Bahrain.avif';
+import bahrainTrack from '../img/tracks/Bahrain_Circuit.avif';
 
 // Saudi Arabian Grand Prix
-// import jeddahTrack from '../img/tracks/Jeddah.avif';
+import saudiArabiaTrack from '../img/tracks/Saudi_Arabia_Circuit.avif';
 
 // Miami Grand Prix
-// import miamiTrack from '../img/tracks/Miami.avif';
+import miamiTrack from '../img/tracks/Miami_Circuit.avif';
 
 // Emilia Romagna Grand Prix
-// import imolaTrack from '../img/tracks/Imola.avif';
+import emiliaRomagnaTrack from '../img/tracks/Emilia_Romagna_Circuit.avif';
 
 // Monaco Grand Prix
-// import monacoTrack from '../img/tracks/Monaco.avif';
+import monacoTrack from '../img/tracks/Monaco_Circuit.avif';
 
 // Canadian Grand Prix
-// import villeneuveTrack from '../img/tracks/Villeneuve.avif';
+import canadaTrack from '../img/tracks/Canada_Circuit.avif';
 
 // Spanish Grand Prix
-// import barcelonaTrack from '../img/tracks/Barcelona.avif';
+import spainTrack from '../img/tracks/Spain_Circuit.avif';
 
 // Austrian Grand Prix
-// import redBullRingTrack from '../img/tracks/RedBullRing.avif';
+import austriaTrack from '../img/tracks/Austria_Circuit.avif';
 
 // British Grand Prix
-// import silverstoneTrack from '../img/tracks/Silverstone.avif';
+import greatBritainTrack from '../img/tracks/Great_Britain_Circuit.avif';
 
 // Hungarian Grand Prix
-// import hungaroringTrack from '../img/tracks/Hungaroring.avif';
+import hungaryTrack from '../img/tracks/Hungary_Circuit.avif';
 
 // Belgian Grand Prix
-// import spaTrack from '../img/tracks/Spa.avif';
+import belgiumTrack from '../img/tracks/Belgium_Circuit.avif';
 
 // Dutch Grand Prix
-// import zandvoortTrack from '../img/tracks/Zandvoort.avif';
+import netherlandsTrack from '../img/tracks/Netherlands_Circuit.avif';
 
 // Italian Grand Prix
-// import monzaTrack from '../img/tracks/Monza.avif';
+import italyTrack from '../img/tracks/Italy_Circuit.avif';
 
 // Azerbaijan Grand Prix
-// import bakuTrack from '../img/tracks/Baku.avif';
+import bakuTrack from '../img/tracks/Baku_Circuit.avif';
 
 // Singapore Grand Prix
-// import marinaBayTrack from '../img/tracks/MarinaBay.avif';
+import singaporeTrack from '../img/tracks/Singapore_Circuit.avif';
 
 // United States Grand Prix (COTA)
-// import americasTrack from '../img/tracks/Americas.avif';
+import usaTrack from '../img/tracks/USA_Circuit.avif';
 
 // Mexican Grand Prix
-// import rodriguezTrack from '../img/tracks/Rodriguez.avif';
+import mexicoTrack from '../img/tracks/Mexico_Circuit.avif';
 
 // Brazilian Grand Prix
-import brazilTrack from '../img/tracks/Brazil.avif';
+import brazilTrack from '../img/tracks/Brazil_Circuit.avif';
 
 // Las Vegas Grand Prix
-// import vegasTrack from '../img/tracks/Vegas.avif';
+import lasVegasTrack from '../img/tracks/Las_Vegas_Circuit.avif';
 
 // Qatar Grand Prix
-// import losailTrack from '../img/tracks/Losail.avif';
+import qatarTrack from '../img/tracks/Qatar_Circuit.avif';
 
 // Abu Dhabi Grand Prix
-// import yasMarinaTrack from '../img/tracks/YasMarina.avif';
+import abuDhabiTrack from '../img/tracks/Abu_Dhabi_Circuit.avif';
 
 interface QualifyingResult {
   position: string;
@@ -125,79 +124,79 @@ interface RaceData {
 }
 
 // Local track images (prioritized)
-// Uncomment entries as you add the corresponding image files to /src/img/tracks/
+// Maps circuit IDs to imported local track images
 const LOCAL_TRACK_IMAGES: Record<string, string> = {
   // Australian Grand Prix
-  // albert_park: albertParkTrack,
+  albert_park: australiaTrack,
   
   // Chinese Grand Prix
-  // shanghai: shanghaiTrack,
+  shanghai: chinaTrack,
   
   // Japanese Grand Prix
-  // suzuka: suzukaTrack,
+  suzuka: japanTrack,
   
   // Bahrain Grand Prix
-  // bahrain: bahrainTrack,
+  bahrain: bahrainTrack,
   
   // Saudi Arabian Grand Prix
-  // jeddah: jeddahTrack,
+  jeddah: saudiArabiaTrack,
   
   // Miami Grand Prix
-  // miami: miamiTrack,
+  miami: miamiTrack,
   
   // Emilia Romagna Grand Prix
-  // imola: imolaTrack,
+  imola: emiliaRomagnaTrack,
   
   // Monaco Grand Prix
-  // monaco: monacoTrack,
+  monaco: monacoTrack,
   
   // Canadian Grand Prix
-  // villeneuve: villeneuveTrack,
+  villeneuve: canadaTrack,
   
   // Spanish Grand Prix
-  // barcelona: barcelonaTrack,
+  barcelona: spainTrack,
   
   // Austrian Grand Prix
-  // red_bull_ring: redBullRingTrack,
+  red_bull_ring: austriaTrack,
   
   // British Grand Prix
-  // silverstone: silverstoneTrack,
+  silverstone: greatBritainTrack,
   
   // Hungarian Grand Prix
-  // hungaroring: hungaroringTrack,
+  hungaroring: hungaryTrack,
   
   // Belgian Grand Prix
-  // spa: spaTrack,
+  spa: belgiumTrack,
   
   // Dutch Grand Prix
-  // zandvoort: zandvoortTrack,
+  zandvoort: netherlandsTrack,
   
   // Italian Grand Prix
-  // monza: monzaTrack,
+  monza: italyTrack,
   
   // Azerbaijan Grand Prix
-  // baku: bakuTrack,
+  baku: bakuTrack,
   
   // Singapore Grand Prix
-  // marina_bay: marinaBayTrack,
+  marina_bay: singaporeTrack,
   
   // United States Grand Prix (COTA)
-  // americas: americasTrack,
+  americas: usaTrack,
   
   // Mexican Grand Prix
-  // rodriguez: rodriguezTrack,
+  rodriguez: mexicoTrack,
   
-  // Brazilian Grand Prix - using local image
+  // Brazilian Grand Prix
   interlagos: brazilTrack,
   
   // Las Vegas Grand Prix
-  // vegas: vegasTrack,
+  vegas: lasVegasTrack,
   
   // Qatar Grand Prix
-  // losail: losailTrack,
+  losail: qatarTrack,
   
   // Abu Dhabi Grand Prix
-  // yas_marina: yasMarinaTrack,
+  yas_marina: abuDhabiTrack,
 };
 
 // Fallback to external F1 media URLs if local images aren't available
