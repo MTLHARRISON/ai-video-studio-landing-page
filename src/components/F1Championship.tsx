@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Flag } from 'lucide-react';
+import { Trophy, Flag, TrendingUp } from 'lucide-react';
+import { PointsProgressionChart } from './PointsProgressionChart';
 
 interface Driver {
   position: string;
@@ -75,8 +76,8 @@ export function F1Championship() {
 
   if (loading) {
     return (
-      <div className="py-20 bg-gradient-to-b from-background to-muted/30">
-        <div className="container mx-auto px-6 text-center">
+      <div className="py-12 sm:py-20 bg-gradient-to-b from-background to-muted/30">
+        <div className="container mx-auto px-4 sm:px-6 text-center">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-64 mx-auto mb-4"></div>
             <div className="h-40 bg-muted rounded-xl max-w-md mx-auto"></div>
@@ -93,25 +94,31 @@ export function F1Championship() {
   const leader = standings.DriverStandings[0];
   const topThree = standings.DriverStandings.slice(0, 3);
 
+  const topDriversForChart = topThree.map(d => ({
+    driverId: d.Driver.driverId,
+    name: `${d.Driver.givenName} ${d.Driver.familyName}`,
+    constructor: d.Constructors[0]?.name || ''
+  }));
+
   return (
-    <div className="py-20 bg-gradient-to-b from-background to-muted/30 overflow-hidden">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
-            <Flag className="w-4 h-4" />
+    <div id="f1-championship" className="py-12 sm:py-20 bg-gradient-to-b from-background to-muted/30 overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
+            <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
             {standings.season} Season • Round {standings.round}
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">
             F1 Championship Standings
           </h2>
         </div>
 
-        {/* Leader Card */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="relative bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border border-yellow-500/30 rounded-2xl p-8 backdrop-blur-sm">
-            <div className="flex items-center gap-6">
+        {/* Leader Card - Mobile Optimized */}
+        <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
+          <div className="relative bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-orange-500/20 border border-yellow-500/30 rounded-2xl p-4 sm:p-8 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-1">
                   <img
                     src={getDriverImageUrl(leader.Driver.driverId, leader.Driver.familyName) || ''}
                     alt={`${leader.Driver.givenName} ${leader.Driver.familyName}`}
@@ -121,39 +128,39 @@ export function F1Championship() {
                     }}
                   />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-sm font-bold text-black">
                   1
                 </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider mb-1">
                   Championship Leader
                 </p>
-                <h3 className="text-2xl md:text-3xl font-bold text-foreground">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                   {leader.Driver.givenName} {leader.Driver.familyName}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {leader.Constructors[0]?.name} • {leader.Driver.nationality}
                 </p>
               </div>
-              <div className="text-right flex items-center gap-3">
-                <Trophy className="w-20 h-20 text-yellow-500" />
+              <div className="flex items-center gap-3 sm:text-right">
+                <Trophy className="w-14 h-14 sm:w-20 sm:h-20 text-yellow-500" />
                 <div>
-                  <p className="text-4xl font-bold text-foreground">{leader.points}</p>
-                  <p className="text-sm text-muted-foreground">points</p>
-                  <p className="text-sm text-primary mt-1">{leader.wins} wins</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-foreground">{leader.points}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">points</p>
+                  <p className="text-xs sm:text-sm text-primary mt-1">{leader.wins} wins</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Top 3 */}
-        <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+        {/* Top 3 - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-8 sm:mb-12">
           {topThree.map((driver, index) => (
             <div
               key={driver.Driver.code}
-              className={`relative p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
+              className={`relative p-4 sm:p-6 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
                 index === 0
                   ? 'bg-yellow-500/10 border-yellow-500/30'
                   : index === 1
@@ -161,10 +168,10 @@ export function F1Championship() {
                   : 'bg-amber-700/10 border-amber-700/30'
               }`}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div className="relative">
                   <div
-                    className={`w-14 h-14 rounded-full p-0.5 ${
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-0.5 ${
                       index === 0
                         ? 'bg-gradient-to-br from-yellow-400 to-amber-600'
                         : index === 1
@@ -182,7 +189,7 @@ export function F1Championship() {
                     />
                   </div>
                   <div
-                    className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    className={`absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                       index === 0
                         ? 'bg-yellow-500 text-black'
                         : index === 1
@@ -194,15 +201,15 @@ export function F1Championship() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground truncate">
+                  <p className="font-semibold text-foreground truncate text-sm sm:text-base">
                     {driver.Driver.givenName} {driver.Driver.familyName}
                   </p>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {driver.Constructors[0]?.name}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-foreground">{driver.points}</p>
+                  <p className="font-bold text-foreground text-sm sm:text-base">{driver.points}</p>
                   <p className="text-xs text-muted-foreground">pts</p>
                 </div>
               </div>
@@ -210,7 +217,18 @@ export function F1Championship() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-8">
+        {/* Points Progression Chart */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-card/50 border border-border rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground">Points Progression</h3>
+            </div>
+            <PointsProgressionChart topDrivers={topDriversForChart} />
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
           Data provided by Ergast F1 API
         </p>
       </div>
