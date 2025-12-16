@@ -131,13 +131,13 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: 'hsl(var(--card) / 0.8)', 
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid hsl(var(--border) / 0.5)',
+              backgroundColor: 'hsl(var(--card) / 0.7)', 
+              backdropFilter: 'blur(15px)',
+              WebkitBackdropFilter: 'blur(15px)',
+              border: '1px solid hsl(var(--border) / 0.4)',
               borderRadius: '12px',
               color: 'hsl(var(--foreground))',
-              boxShadow: '0 8px 32px hsl(var(--background) / 0.3)'
+              boxShadow: '0 8px 32px hsl(var(--background) / 0.4)'
             }}
           />
           <Legend />
