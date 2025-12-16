@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- F1 Car Icon - Optimized for Favicon -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E80020;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CC0000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Circle (optional, can be removed) -->
+  <circle cx="100" cy="100" r="95" fill="#1a1a1a" opacity="0.3"/>
+  
+  <!-- Main Car Body -->
+  <path d="M 35 130 L 45 120 L 65 115 L 100 110 L 135 115 L 155 120 L 165 130 L 165 155 L 155 165 L 135 170 L 100 175 L 65 170 L 45 165 L 35 155 Z" 
+        fill="url(#bodyGrad)" 
+        stroke="#fff" 
+        stroke-width="2.5"/>
+  
+  <!-- Front Wing -->
+  <path d="M 35 130 L 45 120 L 48 128 L 38 138 Z" fill="#FFD700" stroke="#fff" stroke-width="1.5"/>
+  
+  <!-- Rear Wing -->
+  <path d="M 155 120 L 165 130 L 162 138 L 152 128 Z" fill="#FFD700" stroke="#fff" stroke-width="1.5"/>
+  
+  <!-- Front Wheel -->
+  <circle cx="65" cy="160" r="12" fill="#000" stroke="#fff" stroke-width="2"/>
+  <circle cx="65" cy="160" r="6" fill="#333"/>
+  <circle cx="65" cy="160" r="2" fill="#666"/>
+  
+  <!-- Rear Wheel -->
+  <circle cx="135" cy="160" r="12" fill="#000" stroke="#fff" stroke-width="2"/>
+  <circle cx="135" cy="160" r="6" fill="#333"/>
+  <circle cx="135" cy="160" r="2" fill="#666"/>
+  
+  <!-- Cockpit -->
+  <path d="M 85 120 L 115 120 L 115 145 L 85 145 Z" fill="#000" opacity="0.5"/>
+  
+  <!-- Air Intake -->
+  <ellipse cx="100" cy="118" rx="10" ry="5" fill="#222"/>
+</svg>
+
