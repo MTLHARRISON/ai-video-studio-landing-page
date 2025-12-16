@@ -2,9 +2,30 @@
 
 import { motion } from 'framer-motion'
 import { Flag } from 'lucide-react'
-import heroImg from '../img/hero.jpg' // added import
+import { useState, useEffect } from 'react'
+import heroImg from '../img/hero.jpg'
+
+const CONSTRUCTOR_COLORS = [
+  '#FF8000', // McLaren
+  '#3671C6', // Red Bull
+  '#E80020', // Ferrari
+  '#27F4D2', // Mercedes
+  '#229971', // Aston Martin
+  '#0093CC', // Alpine
+  '#64C4FF', // Williams
+  '#B6BABD', // Haas
+  '#52E252', // Kick Sauber
+  '#6692FF', // RB
+];
 
 export function Hero() {
+  const [championshipColor, setChampionshipColor] = useState('#E80020');
+
+  useEffect(() => {
+    const randomColor = CONSTRUCTOR_COLORS[Math.floor(Math.random() * CONSTRUCTOR_COLORS.length)];
+    setChampionshipColor(randomColor);
+  }, []);
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
       {/* F1 Background Video (replaced with local hero image) */}
@@ -27,7 +48,7 @@ export function Hero() {
         transition={{ duration: 0.8, delay: 0.3 }}
         className="fixed top-0 left-0 right-0 w-full z-[110]"
       >
-        <div className="w-full px-6 sm:px-8 lg:px-12 py-4 bg-black/50 backdrop-blur-xl border-b border-white/10">
+        <div className="w-full px-4 sm:px-6 lg:px-12 py-3 sm:py-4 bg-black/50 backdrop-blur-xl border-b border-white/10">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <motion.div
@@ -35,13 +56,13 @@ export function Hero() {
               className="flex items-center gap-2 cursor-pointer"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
-              <Flag className="w-6 h-6 text-red-500" />
-              <span className="font-bold text-white text-xl tracking-wider">F1 TRACKER</span>
+              <Flag className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
+              <span className="font-bold text-white text-lg sm:text-xl tracking-wider">F1 TRACKER</span>
             </motion.div>
 
             {/* Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#f1-championship" className="text-white hover:text-red-500 font-medium transition-colors">
+            <div className="flex items-center">
+              <a href="#f1-championship" className="text-white hover:text-red-500 font-medium transition-colors text-sm sm:text-base">
                 Standings
               </a>
             </div>
@@ -54,24 +75,24 @@ export function Hero() {
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1, delay: 0.5 }}
-        className="absolute bottom-12 left-6 sm:left-8 lg:left-12 z-40"
+        className="absolute bottom-16 sm:bottom-12 left-4 sm:left-6 lg:left-12 z-40 right-4 sm:right-auto"
       >
         <div className="max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-full text-red-400 text-sm font-medium mb-6"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600/20 border border-red-500/30 rounded-full text-red-400 text-xs sm:text-sm font-medium mb-4 sm:mb-6"
           >
-            <Flag className="w-4 h-4" />
+            <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
             2025 Season Live
           </motion.div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight text-white">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight text-white">
             <span className="block">FORMULA 1</span>
-            <span className="block text-red-500">CHAMPIONSHIP</span>
+            <span className="block" style={{ color: championshipColor }}>CHAMPIONSHIP</span>
             <span className="block">TRACKER</span>
           </h1>
-          <p className="mt-6 text-lg text-white/70 max-w-md">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg text-white/70 max-w-md">
             Live standings, driver stats, and race results from the world's most exciting motorsport.
           </p>
         </div>
@@ -82,7 +103,7 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.5 }}
-        className="absolute bottom-8 right-8 text-white/50 text-sm hidden md:block"
+        className="absolute bottom-8 right-8 text-white/50 text-sm hidden lg:block"
       >
         <div className="flex flex-col items-center gap-2">
           <span>Scroll to explore</span>
