@@ -37,17 +37,41 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRaceResults = async () => {
+    const fetchAllRaceResults = async () => {
       try {
-        const response = await fetch('https://api.jolpi.ca/ergast/f1/current/results.json?limit=500');
-        const data = await response.json();
-        const races: RaceResult[] = data.MRData.RaceTable.Races;
+        // Fetch paginated results to get all 24 races
+        const allRaces: RaceResult[] = [];
+        let offset = 0;
+        const limit = 100;
+        let total = 999;
+
+        while (offset < total) {
+          const response = await fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=${limit}&offset=${offset}`);
+          const data = await response.json();
+          total = parseInt(data.MRData.total);
+          const races: RaceResult[] = data.MRData.RaceTable.Races;
+          
+          // Merge races by round
+          races.forEach(race => {
+            const existingRace = allRaces.find(r => r.round === race.round);
+            if (existingRace) {
+              existingRace.Results.push(...race.Results);
+            } else {
+              allRaces.push(race);
+            }
+          });
+          
+          offset += limit;
+        }
+
+        // Sort races by round number
+        allRaces.sort((a, b) => parseInt(a.round) - parseInt(b.round));
 
         // Calculate cumulative points per round
         const cumulativePoints: Record<string, number> = {};
         topDrivers.forEach(d => { cumulativePoints[d.driverId] = 0; });
 
-        const processedData: ChartData[] = races.map((race) => {
+        const processedData: ChartData[] = allRaces.map((race) => {
           race.Results.forEach(result => {
             if (cumulativePoints[result.Driver.driverId] !== undefined) {
               cumulativePoints[result.Driver.driverId] += parseFloat(result.points);
@@ -70,7 +94,7 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
     };
 
     if (topDrivers.length > 0) {
-      fetchRaceResults();
+      fetchAllRaceResults();
     }
   }, [topDrivers]);
 
@@ -107,10 +131,13 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: 'hsl(var(--card))', 
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
-              color: 'hsl(var(--foreground))'
+              backgroundColor: 'hsl(var(--card) / 0.8)', 
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid hsl(var(--border) / 0.5)',
+              borderRadius: '12px',
+              color: 'hsl(var(--foreground))',
+              boxShadow: '0 8px 32px hsl(var(--background) / 0.3)'
             }}
           />
           <Legend />
