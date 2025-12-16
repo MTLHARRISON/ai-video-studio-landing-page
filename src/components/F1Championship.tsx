@@ -70,6 +70,78 @@ const getDriverImageUrl = (driverId: string, familyName: string) => {
   return driverImageMap[driverId] || null;
 };
 
+// Map constructor IDs/names to their official F1 logo URLs
+const getConstructorLogoUrl = (constructorId: string, constructorName: string): string | null => {
+  // Try 2025 first, fallback to 2024 if needed
+  const currentYear = '2025';
+  const fallbackYear = '2024';
+  
+  const logoMap: Record<string, string> = {
+    // McLaren
+    mclaren: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/mclaren.png`,
+    
+    // Red Bull
+    red_bull: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/red-bull-racing.png`,
+    redbull: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/red-bull-racing.png`,
+    
+    // Ferrari
+    ferrari: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/ferrari.png`,
+    
+    // Mercedes
+    mercedes: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/mercedes.png`,
+    
+    // Aston Martin
+    aston_martin: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/aston-martin.png`,
+    'aston martin': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/aston-martin.png`,
+    
+    // Alpine
+    alpine: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/alpine.png`,
+    
+    // Williams
+    williams: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/williams.png`,
+    
+    // Haas
+    haas: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/haas-f1-team.png`,
+    'haas f1 team': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/haas-f1-team.png`,
+    
+    // Sauber / Kick Sauber / Stake F1 Team / Audi
+    sauber: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
+    'kick sauber': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
+    'stake f1 team kick sauber': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
+    audi: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/stake-f1-team-kick-sauber.png`,
+    
+    // RB / Visa Cash App RB / VCARB
+    rb: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
+    'rb f1 team': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
+    'visa cash app rb': `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
+    vcarb: `https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/${currentYear}/rb.png`,
+  };
+
+  // Normalize the key for lookup
+  const normalizedId = constructorId.toLowerCase().replace(/\s+/g, '_');
+  const normalizedName = constructorName.toLowerCase().trim();
+
+  // Try constructor ID first
+  if (logoMap[normalizedId]) {
+    return logoMap[normalizedId];
+  }
+
+  // Try normalized name
+  if (logoMap[normalizedName]) {
+    return logoMap[normalizedName];
+  }
+
+  // Try partial matches
+  for (const [key, url] of Object.entries(logoMap)) {
+    if (normalizedId.includes(key) || key.includes(normalizedId) ||
+        normalizedName.includes(key) || key.includes(normalizedName)) {
+      return url;
+    }
+  }
+
+  return null;
+};
+
 // Map constructor names to their brand colors
 const getConstructorColor = (constructorName: string): string => {
   const colorMap: Record<string, string> = {
@@ -84,8 +156,10 @@ const getConstructorColor = (constructorName: string): string => {
     'Haas': '#B6BABD',
     'Kick Sauber': '#52E252',
     'Sauber': '#52E252',
+    'Stake F1 Team Kick Sauber': '#52E252',
     'RB': '#6692FF',
     'RB F1 Team': '#6692FF',
+    'Visa Cash App RB': '#6692FF',
   };
   
   // Try exact match first
@@ -340,6 +414,7 @@ export function F1Championship() {
                 {/* Constructor Leader Card - Mobile Optimized */}
                 {constructorLeader && (() => {
                   const leaderColor = getConstructorColor(constructorLeader.Constructor.name);
+                  const leaderLogo = getConstructorLogoUrl(constructorLeader.Constructor.constructorId, constructorLeader.Constructor.name);
                   return (
                     <div className="max-w-2xl mx-auto mb-6 sm:mb-8">
                       <div 
@@ -352,20 +427,35 @@ export function F1Championship() {
                         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                           <div className="relative">
                             <div 
-                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1"
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl p-2 bg-white"
                               style={{
-                                background: `linear-gradient(to bottom right, ${leaderColor}, ${leaderColor}dd)`
+                                background: `linear-gradient(to bottom right, ${leaderColor}15, white)`,
+                                border: `2px solid ${leaderColor}40`
                               }}
                             >
+                              {leaderLogo ? (
+                                <img
+                                  src={leaderLogo}
+                                  alt={constructorLeader.Constructor.name}
+                                  className="w-full h-full rounded-lg object-contain"
+                                  onError={(e) => {
+                                    // Fallback to initial if image fails
+                                    const target = e.currentTarget as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.parentElement?.querySelector('.constructor-fallback') as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
                               <div 
-                                className="w-full h-full rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold"
+                                className={`w-full h-full rounded-lg flex items-center justify-center text-white text-2xl sm:text-3xl font-bold ${leaderLogo ? 'constructor-fallback hidden' : ''}`}
                                 style={{ backgroundColor: `${leaderColor}80` }}
                               >
                                 {constructorLeader.Constructor.name.charAt(0)}
                               </div>
                             </div>
                             <div 
-                              className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                              className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg"
                               style={{ backgroundColor: leaderColor }}
                             >
                               1
@@ -402,6 +492,7 @@ export function F1Championship() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-8 sm:mb-12">
                   {topThreeConstructors.map((constructor, index) => {
                     const constructorColor = getConstructorColor(constructor.Constructor.name);
+                    const constructorLogo = getConstructorLogoUrl(constructor.Constructor.constructorId, constructor.Constructor.name);
                     return (
                       <div
                         key={constructor.Constructor.constructorId}
@@ -414,20 +505,35 @@ export function F1Championship() {
                         <div className="flex items-center gap-3 sm:gap-4">
                           <div className="relative">
                             <div
-                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full p-0.5"
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg p-1 bg-white"
                               style={{
-                                background: `linear-gradient(to bottom right, ${constructorColor}, ${constructorColor}dd)`
+                                background: `linear-gradient(to bottom right, ${constructorColor}15, white)`,
+                                border: `2px solid ${constructorColor}40`
                               }}
                             >
+                              {constructorLogo ? (
+                                <img
+                                  src={constructorLogo}
+                                  alt={constructor.Constructor.name}
+                                  className="w-full h-full rounded-md object-contain"
+                                  onError={(e) => {
+                                    // Fallback to initial if image fails
+                                    const target = e.currentTarget as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.parentElement?.querySelector('.constructor-fallback') as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
                               <div 
-                                className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base"
+                                className={`w-full h-full rounded-md flex items-center justify-center text-white font-bold text-sm sm:text-base ${constructorLogo ? 'constructor-fallback hidden' : ''}`}
                                 style={{ backgroundColor: `${constructorColor}cc` }}
                               >
                                 {constructor.Constructor.name.charAt(0)}
                               </div>
                             </div>
                             <div
-                              className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                              className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-md"
                               style={{ backgroundColor: constructorColor }}
                             >
                               {constructor.position}
@@ -458,6 +564,7 @@ export function F1Championship() {
                     <div className="space-y-2">
                       {constructorStandings.ConstructorStandings.map((constructor) => {
                         const constructorColor = getConstructorColor(constructor.Constructor.name);
+                        const constructorLogo = getConstructorLogoUrl(constructor.Constructor.constructorId, constructor.Constructor.name);
                         return (
                           <div
                             key={constructor.Constructor.constructorId}
@@ -469,10 +576,40 @@ export function F1Championship() {
                           >
                             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                               <div
-                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0 shadow-sm"
                                 style={{ backgroundColor: constructorColor }}
                               >
                                 {constructor.position}
+                              </div>
+                              <div className="relative flex-shrink-0">
+                                <div
+                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-md p-0.5 bg-white"
+                                  style={{
+                                    background: `linear-gradient(to bottom right, ${constructorColor}15, white)`,
+                                    border: `1.5px solid ${constructorColor}40`
+                                  }}
+                                >
+                                  {constructorLogo ? (
+                                    <img
+                                      src={constructorLogo}
+                                      alt={constructor.Constructor.name}
+                                      className="w-full h-full rounded-sm object-contain"
+                                      onError={(e) => {
+                                        // Fallback to initial if image fails
+                                        const target = e.currentTarget as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const fallback = target.parentElement?.querySelector('.constructor-fallback') as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div 
+                                    className={`w-full h-full rounded-sm flex items-center justify-center text-white font-bold text-xs ${constructorLogo ? 'constructor-fallback hidden' : ''}`}
+                                    style={{ backgroundColor: `${constructorColor}cc` }}
+                                  >
+                                    {constructor.Constructor.name.charAt(0)}
+                                  </div>
+                                </div>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-foreground truncate text-sm sm:text-base">
