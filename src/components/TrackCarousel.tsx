@@ -337,7 +337,15 @@ export function TrackCarousel() {
   const [races, setRaces] = useState<RaceData[]>([]);
   const [trackImages, setTrackImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Configure Embla: disable touch on desktop, enable on mobile
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: true, 
+    align: 'center',
+    watchDrag: true, // Enable drag/swipe
+  });
+  
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Fetch track images - try SportMonks first, fallback to F1 media
@@ -439,6 +447,20 @@ export function TrackCarousel() {
     fetchData();
   }, []);
 
+  // Detect mobile vs desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                            (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle carousel selection
   useEffect(() => {
     if (!emblaApi) return;
     
@@ -446,6 +468,135 @@ export function TrackCarousel() {
     emblaApi.on('select', onSelect);
     return () => { emblaApi.off('select', onSelect); };
   }, [emblaApi]);
+
+  // Handle swipe gestures: two-finger on desktop/laptop, single-finger on mobile
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const carouselElement = emblaRef.current;
+    if (!carouselElement) return;
+
+    // State for touch gestures
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchCount = 0;
+    let isScrolling = false;
+    let lastScrollTime = 0;
+    const SCROLL_THROTTLE = 300; // Minimum time between scrolls (ms)
+
+    // Handle wheel events for two-finger trackpad swipes on desktop
+    const handleWheel = (e: WheelEvent) => {
+      // On mobile, let default behavior handle it
+      if (isMobile) return;
+
+      // Detect horizontal trackpad swipe (two-finger gesture)
+      // Trackpad gestures have small deltaY values and significant deltaX
+      const isHorizontalSwipe = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 2;
+      const hasSignificantHorizontalMovement = Math.abs(e.deltaX) > 15;
+
+      if (isHorizontalSwipe && hasSignificantHorizontalMovement) {
+        const now = Date.now();
+        if (now - lastScrollTime < SCROLL_THROTTLE) {
+          e.preventDefault();
+          return;
+        }
+
+        e.preventDefault();
+        lastScrollTime = now;
+
+        if (e.deltaX > 0) {
+          // Swipe right (two fingers moving right) - go to previous track
+          emblaApi.scrollPrev();
+        } else {
+          // Swipe left (two fingers moving left) - go to next track
+          emblaApi.scrollNext();
+        }
+      }
+    };
+
+    // Handle touch start for both mobile and desktop
+    const handleTouchStart = (e: TouchEvent) => {
+      touchCount = e.touches.length;
+
+      if (isMobile) {
+        // Mobile: single finger swipe allowed
+        if (touchCount === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          isScrolling = true;
+        }
+      } else {
+        // Desktop: require two-finger touch
+        if (touchCount === 2) {
+          touchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          touchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          isScrolling = true;
+          e.preventDefault(); // Prevent default scrolling/pinch zoom
+        }
+      }
+    };
+
+    // Handle touch move
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isScrolling) return;
+
+      if (isMobile && touchCount === 1) {
+        // Mobile: single finger swipe - let Embla's built-in drag handle it
+        // We don't need to do anything here as Embla handles it automatically
+        return;
+      } else if (!isMobile && touchCount === 2) {
+        // Desktop: two-finger swipe
+        const currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const deltaX = touchStartX - currentX;
+        const deltaY = Math.abs(touchStartY - currentY);
+
+        // Only trigger if horizontal movement is dominant
+        if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 50) {
+          e.preventDefault();
+
+          const now = Date.now();
+          if (now - lastScrollTime < SCROLL_THROTTLE) {
+            return;
+          }
+          lastScrollTime = now;
+
+          if (deltaX > 0) {
+            emblaApi.scrollNext();
+          } else {
+            emblaApi.scrollPrev();
+          }
+          
+          isScrolling = false; // Reset after scroll
+        }
+      }
+    };
+
+    // Handle touch end
+    const handleTouchEnd = () => {
+      isScrolling = false;
+      touchCount = 0;
+    };
+
+    // Add event listeners
+    carouselElement.addEventListener('wheel', handleWheel, { passive: false });
+    
+    // Only add touch handlers if needed (Embla handles mobile touch by default, but we need custom for desktop)
+    if (!isMobile) {
+      carouselElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+      carouselElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      carouselElement.addEventListener('touchend', handleTouchEnd);
+    }
+
+    return () => {
+      carouselElement.removeEventListener('wheel', handleWheel);
+      if (!isMobile) {
+        carouselElement.removeEventListener('touchstart', handleTouchStart);
+        carouselElement.removeEventListener('touchmove', handleTouchMove);
+        carouselElement.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
+  }, [emblaApi, emblaRef, isMobile]);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
