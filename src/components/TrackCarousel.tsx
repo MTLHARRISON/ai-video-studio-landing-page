@@ -125,8 +125,14 @@ const TRACK_IMAGES: Record<string, string> = {
 };
 
 // Helper function to get track image URL with fallback
-const getTrackImageUrl = (circuitId: string): string | null => {
-  // Try direct match first
+// Now checks both SportMonks images (if loaded) and fallback F1 media
+const getTrackImageUrl = (circuitId: string, sportMonksImages?: Record<string, string>): string | null => {
+  // Try SportMonks images first if available
+  if (sportMonksImages && sportMonksImages[circuitId]) {
+    return sportMonksImages[circuitId];
+  }
+  
+  // Try direct match in F1 media
   if (TRACK_IMAGES[circuitId]) {
     return TRACK_IMAGES[circuitId];
   }
@@ -167,9 +173,39 @@ const getConstructorColor = (constructor: string) => {
 
 export function TrackCarousel() {
   const [races, setRaces] = useState<RaceData[]>([]);
+  const [trackImages, setTrackImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Fetch track images - try SportMonks first, fallback to F1 media
+  useEffect(() => {
+    const fetchTrackImages = async () => {
+      // Initialize with F1 media URLs as fallback
+      const imageMap: Record<string, string> = { ...TRACK_IMAGES };
+      
+      try {
+        // Try to fetch from SportMonks API if API token is provided via environment variable
+        // For now, we'll use F1 media URLs which are reliable
+        // If you have a SportMonks API token, you can add it here:
+        // const SPORTMONKS_API_TOKEN = import.meta.env.VITE_SPORTMONKS_API_TOKEN;
+        // if (SPORTMONKS_API_TOKEN) {
+        //   const response = await fetch(`https://f1.sportmonks.com/api/v1.0/tracks/season/2025?api_token=${SPORTMONKS_API_TOKEN}`);
+        //   const data = await response.json();
+        //   // Process track images from API response
+        // }
+
+        // Since SportMonks requires API access, we'll use F1 media URLs
+        // These are reliable and publicly accessible
+        setTrackImages(imageMap);
+      } catch (err) {
+        console.error('Failed to load track images, using F1 media fallback');
+        setTrackImages(imageMap);
+      }
+    };
+
+    fetchTrackImages();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -293,7 +329,7 @@ export function TrackCarousel() {
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex">
               {races.map((race, index) => {
-                const trackImage = getTrackImageUrl(race.Circuit.circuitId);
+                const trackImage = getTrackImageUrl(race.Circuit.circuitId, trackImages);
                 const poleTime = race.qualifyingResults?.[0]?.Q3 || race.qualifyingResults?.[0]?.Q2 || race.qualifyingResults?.[0]?.Q1;
                 const poleSitter = race.qualifyingResults?.[0];
 
