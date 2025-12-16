@@ -316,29 +316,44 @@ export function TrackCarousel() {
                       </div>
 
                       {/* Track Map */}
-                      <div className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50">
+                      <div className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50 overflow-hidden">
                         {trackImage ? (
-                          <img
-                            src={trackImage}
-                            alt={race.Circuit.circuitName}
-                            className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0 transition-opacity hover:opacity-100"
-                            onError={(e) => {
-                              const target = e.currentTarget as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div 
-                          className={`text-muted-foreground text-sm flex items-center justify-center ${trackImage ? 'hidden' : 'flex'}`}
-                          style={{ minHeight: '128px' }}
-                        >
-                          <div className="text-center">
-                            <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>Track map unavailable</p>
+                          <>
+                            <img
+                              src={trackImage}
+                              alt={race.Circuit.circuitName}
+                              className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0 transition-opacity hover:opacity-100"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                console.warn(`Failed to load track image for ${race.Circuit.circuitId}:`, trackImage);
+                                target.style.display = 'none';
+                                const fallback = target.parentElement?.querySelector('.track-fallback') as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div 
+                              className="track-fallback text-muted-foreground text-sm flex items-center justify-center hidden"
+                              style={{ minHeight: '128px', position: 'absolute', inset: 0 }}
+                            >
+                              <div className="text-center">
+                                <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-xs">Track map unavailable</p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div 
+                            className="text-muted-foreground text-sm flex items-center justify-center"
+                            style={{ minHeight: '128px' }}
+                          >
+                            <div className="text-center">
+                              <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                              <p className="text-xs">Track map unavailable</p>
+                              <p className="text-[10px] opacity-70 mt-1">Circuit: {race.Circuit.circuitId}</p>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Pole Position */}
