@@ -49,78 +49,79 @@ interface RaceData {
 }
 
 // Map circuit IDs to their official F1 track outline image URLs
+// Using versioned URLs for better reliability with F1 media CDN
 const TRACK_IMAGES: Record<string, string> = {
   // Australian Grand Prix
-  albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
+  albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
   
   // Chinese Grand Prix
-  shanghai: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/China.png',
+  shanghai: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/China.png',
   
   // Japanese Grand Prix
-  suzuka: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Japan.png',
+  suzuka: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Japan.png',
   
   // Bahrain Grand Prix
-  bahrain: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Bahrain.png',
+  bahrain: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Bahrain.png',
   
   // Saudi Arabian Grand Prix
-  jeddah: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Saudi%20Arabia.png',
+  jeddah: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Saudi%20Arabia.png',
   
   // Miami Grand Prix
-  miami: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Miami.png',
+  miami: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Miami.png',
   
   // Emilia Romagna Grand Prix
-  imola: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Emilia%20Romagna.png',
+  imola: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Emilia%20Romagna.png',
   
   // Monaco Grand Prix
-  monaco: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Monaco.png',
+  monaco: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Monaco.png',
   
   // Canadian Grand Prix
-  villeneuve: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Canada.png',
+  villeneuve: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Canada.png',
   
   // Spanish Grand Prix
-  barcelona: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Spain.png',
+  barcelona: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1680529432/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Spain.png',
   
   // Austrian Grand Prix
-  red_bull_ring: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Austria.png',
+  red_bull_ring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Austria.png',
   
   // British Grand Prix
-  silverstone: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Great%20Britain.png',
+  silverstone: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Great%20Britain.png',
   
   // Hungarian Grand Prix
-  hungaroring: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Hungary.png',
+  hungaroring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Hungary.png',
   
   // Belgian Grand Prix
-  spa: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Belgium.png',
+  spa: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Belgium.png',
   
   // Dutch Grand Prix
-  zandvoort: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Netherlands.png',
+  zandvoort: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Netherlands.png',
   
   // Italian Grand Prix
-  monza: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Italy.png',
+  monza: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Italy.png',
   
   // Azerbaijan Grand Prix
-  baku: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Azerbaijan.png',
+  baku: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Azerbaijan.png',
   
   // Singapore Grand Prix
-  marina_bay: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Singapore.png',
+  marina_bay: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1683639459/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Singapore.png',
   
   // United States Grand Prix (COTA)
-  americas: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/USA.png',
+  americas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245034/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/USA.png',
   
   // Mexican Grand Prix
-  rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
+  rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
   
   // Brazilian Grand Prix
-  interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
+  interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
   
   // Las Vegas Grand Prix
-  vegas: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Las%20Vegas.png',
+  vegas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677249931/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Las%20Vegas.png',
   
   // Qatar Grand Prix
-  losail: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Qatar.png',
+  losail: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Qatar.png',
   
   // Abu Dhabi Grand Prix
-  yas_marina: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Abu%20Dhabi.png',
+  yas_marina: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Abu%20Dhabi.png',
 };
 
 // Helper function to get track image URL with fallback
