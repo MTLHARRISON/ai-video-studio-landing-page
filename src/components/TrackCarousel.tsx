@@ -2,6 +2,82 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 
+// Import local track images
+// Note: Add image files to /src/img/tracks/ directory as you obtain them
+// Naming convention: {CircuitName}.{ext} (e.g., Brazil.avif, Monaco.png, etc.)
+
+// Australian Grand Prix
+// import albertParkTrack from '../img/tracks/AlbertPark.avif';
+
+// Chinese Grand Prix
+// import shanghaiTrack from '../img/tracks/Shanghai.avif';
+
+// Japanese Grand Prix
+// import suzukaTrack from '../img/tracks/Suzuka.avif';
+
+// Bahrain Grand Prix
+// import bahrainTrack from '../img/tracks/Bahrain.avif';
+
+// Saudi Arabian Grand Prix
+// import jeddahTrack from '../img/tracks/Jeddah.avif';
+
+// Miami Grand Prix
+// import miamiTrack from '../img/tracks/Miami.avif';
+
+// Emilia Romagna Grand Prix
+// import imolaTrack from '../img/tracks/Imola.avif';
+
+// Monaco Grand Prix
+// import monacoTrack from '../img/tracks/Monaco.avif';
+
+// Canadian Grand Prix
+// import villeneuveTrack from '../img/tracks/Villeneuve.avif';
+
+// Spanish Grand Prix
+// import barcelonaTrack from '../img/tracks/Barcelona.avif';
+
+// Austrian Grand Prix
+// import redBullRingTrack from '../img/tracks/RedBullRing.avif';
+
+// British Grand Prix
+// import silverstoneTrack from '../img/tracks/Silverstone.avif';
+
+// Hungarian Grand Prix
+// import hungaroringTrack from '../img/tracks/Hungaroring.avif';
+
+// Belgian Grand Prix
+// import spaTrack from '../img/tracks/Spa.avif';
+
+// Dutch Grand Prix
+// import zandvoortTrack from '../img/tracks/Zandvoort.avif';
+
+// Italian Grand Prix
+// import monzaTrack from '../img/tracks/Monza.avif';
+
+// Azerbaijan Grand Prix
+// import bakuTrack from '../img/tracks/Baku.avif';
+
+// Singapore Grand Prix
+// import marinaBayTrack from '../img/tracks/MarinaBay.avif';
+
+// United States Grand Prix (COTA)
+// import americasTrack from '../img/tracks/Americas.avif';
+
+// Mexican Grand Prix
+// import rodriguezTrack from '../img/tracks/Rodriguez.avif';
+
+// Brazilian Grand Prix
+import brazilTrack from '../img/tracks/Brazil.avif';
+
+// Las Vegas Grand Prix
+// import vegasTrack from '../img/tracks/Vegas.avif';
+
+// Qatar Grand Prix
+// import losailTrack from '../img/tracks/Losail.avif';
+
+// Abu Dhabi Grand Prix
+// import yasMarinaTrack from '../img/tracks/YasMarina.avif';
+
 interface QualifyingResult {
   position: string;
   Driver: {
@@ -48,9 +124,86 @@ interface RaceData {
   raceResults?: RaceResult[];
 }
 
+// Local track images (prioritized)
+// Uncomment entries as you add the corresponding image files to /src/img/tracks/
+const LOCAL_TRACK_IMAGES: Record<string, string> = {
+  // Australian Grand Prix
+  // albert_park: albertParkTrack,
+  
+  // Chinese Grand Prix
+  // shanghai: shanghaiTrack,
+  
+  // Japanese Grand Prix
+  // suzuka: suzukaTrack,
+  
+  // Bahrain Grand Prix
+  // bahrain: bahrainTrack,
+  
+  // Saudi Arabian Grand Prix
+  // jeddah: jeddahTrack,
+  
+  // Miami Grand Prix
+  // miami: miamiTrack,
+  
+  // Emilia Romagna Grand Prix
+  // imola: imolaTrack,
+  
+  // Monaco Grand Prix
+  // monaco: monacoTrack,
+  
+  // Canadian Grand Prix
+  // villeneuve: villeneuveTrack,
+  
+  // Spanish Grand Prix
+  // barcelona: barcelonaTrack,
+  
+  // Austrian Grand Prix
+  // red_bull_ring: redBullRingTrack,
+  
+  // British Grand Prix
+  // silverstone: silverstoneTrack,
+  
+  // Hungarian Grand Prix
+  // hungaroring: hungaroringTrack,
+  
+  // Belgian Grand Prix
+  // spa: spaTrack,
+  
+  // Dutch Grand Prix
+  // zandvoort: zandvoortTrack,
+  
+  // Italian Grand Prix
+  // monza: monzaTrack,
+  
+  // Azerbaijan Grand Prix
+  // baku: bakuTrack,
+  
+  // Singapore Grand Prix
+  // marina_bay: marinaBayTrack,
+  
+  // United States Grand Prix (COTA)
+  // americas: americasTrack,
+  
+  // Mexican Grand Prix
+  // rodriguez: rodriguezTrack,
+  
+  // Brazilian Grand Prix - using local image
+  interlagos: brazilTrack,
+  
+  // Las Vegas Grand Prix
+  // vegas: vegasTrack,
+  
+  // Qatar Grand Prix
+  // losail: losailTrack,
+  
+  // Abu Dhabi Grand Prix
+  // yas_marina: yasMarinaTrack,
+};
+
+// Fallback to external F1 media URLs if local images aren't available
 // Map circuit IDs to their official F1 track outline image URLs
 // Using versioned URLs for better reliability with F1 media CDN
-const TRACK_IMAGES: Record<string, string> = {
+const EXTERNAL_TRACK_IMAGES: Record<string, string> = {
   // Australian Grand Prix
   albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
   
@@ -111,7 +264,7 @@ const TRACK_IMAGES: Record<string, string> = {
   // Mexican Grand Prix
   rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
   
-  // Brazilian Grand Prix
+  // Brazilian Grand Prix (fallback to external if local not available)
   interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
   
   // Las Vegas Grand Prix
@@ -125,26 +278,36 @@ const TRACK_IMAGES: Record<string, string> = {
 };
 
 // Helper function to get track image URL with fallback
-// Now checks both SportMonks images (if loaded) and fallback F1 media
+// Priority: Local images > SportMonks images > External F1 media URLs
 const getTrackImageUrl = (circuitId: string, sportMonksImages?: Record<string, string>): string | null => {
-  // Try SportMonks images first if available
+  // 1. Try local images first (highest priority)
+  if (LOCAL_TRACK_IMAGES[circuitId]) {
+    return LOCAL_TRACK_IMAGES[circuitId];
+  }
+  
+  // 2. Try normalized key for local images
+  const normalizedId = circuitId.toLowerCase().replace(/[\s-]/g, '_');
+  if (LOCAL_TRACK_IMAGES[normalizedId]) {
+    return LOCAL_TRACK_IMAGES[normalizedId];
+  }
+  
+  // 3. Try SportMonks images if available
   if (sportMonksImages && sportMonksImages[circuitId]) {
     return sportMonksImages[circuitId];
   }
   
-  // Try direct match in F1 media
-  if (TRACK_IMAGES[circuitId]) {
-    return TRACK_IMAGES[circuitId];
+  // 4. Try direct match in external F1 media
+  if (EXTERNAL_TRACK_IMAGES[circuitId]) {
+    return EXTERNAL_TRACK_IMAGES[circuitId];
   }
   
-  // Try normalized key (replace spaces/hyphens with underscores)
-  const normalizedId = circuitId.toLowerCase().replace(/[\s-]/g, '_');
-  if (TRACK_IMAGES[normalizedId]) {
-    return TRACK_IMAGES[normalizedId];
+  // 5. Try normalized key for external images
+  if (EXTERNAL_TRACK_IMAGES[normalizedId]) {
+    return EXTERNAL_TRACK_IMAGES[normalizedId];
   }
   
-  // Try partial matches
-  for (const [key, url] of Object.entries(TRACK_IMAGES)) {
+  // 6. Try partial matches in external images
+  for (const [key, url] of Object.entries(EXTERNAL_TRACK_IMAGES)) {
     if (normalizedId.includes(key) || key.includes(normalizedId)) {
       return url;
     }
@@ -181,8 +344,8 @@ export function TrackCarousel() {
   // Fetch track images - try SportMonks first, fallback to F1 media
   useEffect(() => {
     const fetchTrackImages = async () => {
-      // Initialize with F1 media URLs as fallback
-      const imageMap: Record<string, string> = { ...TRACK_IMAGES };
+        // Initialize with external F1 media URLs as fallback
+        const imageMap: Record<string, string> = { ...EXTERNAL_TRACK_IMAGES };
       
       try {
         // Try to fetch from SportMonks API if API token is provided via environment variable
@@ -197,10 +360,14 @@ export function TrackCarousel() {
 
         // Since SportMonks requires API access, we'll use F1 media URLs
         // These are reliable and publicly accessible
-        setTrackImages(imageMap);
+        // Merge local images (higher priority)
+        const finalImageMap = { ...imageMap, ...LOCAL_TRACK_IMAGES };
+        setTrackImages(finalImageMap);
       } catch (err) {
-        console.error('Failed to load track images, using F1 media fallback');
-        setTrackImages(imageMap);
+        console.error('Failed to load track images, using fallback');
+        // Merge local images even on error
+        const finalImageMap = { ...EXTERNAL_TRACK_IMAGES, ...LOCAL_TRACK_IMAGES };
+        setTrackImages(finalImageMap);
       }
     };
 
