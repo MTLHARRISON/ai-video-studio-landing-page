@@ -48,31 +48,102 @@ interface RaceData {
   raceResults?: RaceResult[];
 }
 
+// Map circuit IDs to their official F1 track outline image URLs
 const TRACK_IMAGES: Record<string, string> = {
-  albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
-  shanghai: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/China.png',
-  suzuka: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Japan.png',
-  bahrain: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Bahrain.png',
-  jeddah: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Saudi%20Arabia.png',
-  miami: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Miami.png',
-  imola: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Emilia%20Romagna.png',
-  monaco: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Monaco.png',
-  villeneuve: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Canada.png',
-  barcelona: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1680529432/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Spain.png',
-  red_bull_ring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Austria.png',
-  silverstone: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Great%20Britain.png',
-  hungaroring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Hungary.png',
-  spa: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Belgium.png',
-  zandvoort: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Netherlands.png',
-  monza: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Italy.png',
-  baku: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Azerbaijan.png',
-  marina_bay: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1683639459/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Singapore.png',
-  americas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245034/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/USA.png',
-  rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
-  interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
-  vegas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677249931/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Las%20Vegas.png',
-  losail: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Qatar.png',
-  yas_marina: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Abu%20Dhabi.png',
+  // Australian Grand Prix
+  albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
+  
+  // Chinese Grand Prix
+  shanghai: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/China.png',
+  
+  // Japanese Grand Prix
+  suzuka: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Japan.png',
+  
+  // Bahrain Grand Prix
+  bahrain: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Bahrain.png',
+  
+  // Saudi Arabian Grand Prix
+  jeddah: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Saudi%20Arabia.png',
+  
+  // Miami Grand Prix
+  miami: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Miami.png',
+  
+  // Emilia Romagna Grand Prix
+  imola: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Emilia%20Romagna.png',
+  
+  // Monaco Grand Prix
+  monaco: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Monaco.png',
+  
+  // Canadian Grand Prix
+  villeneuve: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Canada.png',
+  
+  // Spanish Grand Prix
+  barcelona: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Spain.png',
+  
+  // Austrian Grand Prix
+  red_bull_ring: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Austria.png',
+  
+  // British Grand Prix
+  silverstone: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Great%20Britain.png',
+  
+  // Hungarian Grand Prix
+  hungaroring: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Hungary.png',
+  
+  // Belgian Grand Prix
+  spa: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Belgium.png',
+  
+  // Dutch Grand Prix
+  zandvoort: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Netherlands.png',
+  
+  // Italian Grand Prix
+  monza: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Italy.png',
+  
+  // Azerbaijan Grand Prix
+  baku: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Azerbaijan.png',
+  
+  // Singapore Grand Prix
+  marina_bay: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Singapore.png',
+  
+  // United States Grand Prix (COTA)
+  americas: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/USA.png',
+  
+  // Mexican Grand Prix
+  rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
+  
+  // Brazilian Grand Prix
+  interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
+  
+  // Las Vegas Grand Prix
+  vegas: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Las%20Vegas.png',
+  
+  // Qatar Grand Prix
+  losail: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Qatar.png',
+  
+  // Abu Dhabi Grand Prix
+  yas_marina: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Abu%20Dhabi.png',
+};
+
+// Helper function to get track image URL with fallback
+const getTrackImageUrl = (circuitId: string): string | null => {
+  // Try direct match first
+  if (TRACK_IMAGES[circuitId]) {
+    return TRACK_IMAGES[circuitId];
+  }
+  
+  // Try normalized key (replace spaces/hyphens with underscores)
+  const normalizedId = circuitId.toLowerCase().replace(/[\s-]/g, '_');
+  if (TRACK_IMAGES[normalizedId]) {
+    return TRACK_IMAGES[normalizedId];
+  }
+  
+  // Try partial matches
+  for (const [key, url] of Object.entries(TRACK_IMAGES)) {
+    if (normalizedId.includes(key) || key.includes(normalizedId)) {
+      return url;
+    }
+  }
+  
+  return null;
 };
 
 const CONSTRUCTOR_COLORS: Record<string, string> = {
@@ -221,7 +292,7 @@ export function TrackCarousel() {
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex">
               {races.map((race, index) => {
-                const trackImage = TRACK_IMAGES[race.Circuit.circuitId];
+                const trackImage = getTrackImageUrl(race.Circuit.circuitId);
                 const poleTime = race.qualifyingResults?.[0]?.Q3 || race.qualifyingResults?.[0]?.Q2 || race.qualifyingResults?.[0]?.Q1;
                 const poleSitter = race.qualifyingResults?.[0];
 
@@ -244,16 +315,29 @@ export function TrackCarousel() {
                       </div>
 
                       {/* Track Map */}
-                      <div className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center">
+                      <div className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50">
                         {trackImage ? (
                           <img
                             src={trackImage}
                             alt={race.Circuit.circuitName}
-                            className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0"
+                            className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0 transition-opacity hover:opacity-100"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
                           />
-                        ) : (
-                          <div className="text-muted-foreground text-sm">Track map unavailable</div>
-                        )}
+                        ) : null}
+                        <div 
+                          className={`text-muted-foreground text-sm flex items-center justify-center ${trackImage ? 'hidden' : 'flex'}`}
+                          style={{ minHeight: '128px' }}
+                        >
+                          <div className="text-center">
+                            <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>Track map unavailable</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Pole Position */}
