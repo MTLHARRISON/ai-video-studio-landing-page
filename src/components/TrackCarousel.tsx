@@ -129,73 +129,73 @@ interface RaceData {
 const LOCAL_TRACK_IMAGES: Record<string, string> = {
   // Australian Grand Prix
   albert_park: australiaTrack,
-  
+
   // Chinese Grand Prix
   shanghai: chinaTrack,
-  
+
   // Japanese Grand Prix
   suzuka: japanTrack,
-  
+
   // Bahrain Grand Prix
   bahrain: bahrainTrack,
-  
+
   // Saudi Arabian Grand Prix
   jeddah: saudiArabiaTrack,
-  
+
   // Miami Grand Prix
   miami: miamiTrack,
-  
+
   // Emilia Romagna Grand Prix
   imola: emiliaRomagnaTrack,
-  
+
   // Monaco Grand Prix
   monaco: monacoTrack,
-  
+
   // Canadian Grand Prix
   villeneuve: canadaTrack,
-  
+
   // Spanish Grand Prix
   barcelona: spainTrack,
-  
+
   // Austrian Grand Prix
   red_bull_ring: austriaTrack,
-  
+
   // British Grand Prix
   silverstone: greatBritainTrack,
-  
+
   // Hungarian Grand Prix
   hungaroring: hungaryTrack,
-  
+
   // Belgian Grand Prix
   spa: belgiumTrack,
-  
+
   // Dutch Grand Prix
   zandvoort: netherlandsTrack,
-  
+
   // Italian Grand Prix
   monza: italyTrack,
-  
+
   // Azerbaijan Grand Prix
   baku: bakuTrack,
-  
+
   // Singapore Grand Prix
   marina_bay: singaporeTrack,
-  
+
   // United States Grand Prix (COTA)
   americas: usaTrack,
-  
+
   // Mexican Grand Prix
   rodriguez: mexicoTrack,
-  
+
   // Brazilian Grand Prix
   interlagos: brazilTrack,
-  
+
   // Las Vegas Grand Prix
   vegas: lasVegasTrack,
-  
+
   // Qatar Grand Prix
   losail: qatarTrack,
-  
+
   // Abu Dhabi Grand Prix
   yas_marina: abuDhabiTrack,
 };
@@ -206,73 +206,73 @@ const LOCAL_TRACK_IMAGES: Record<string, string> = {
 const EXTERNAL_TRACK_IMAGES: Record<string, string> = {
   // Australian Grand Prix
   albert_park: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Australia.png',
-  
+
   // Chinese Grand Prix
   shanghai: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/China.png',
-  
+
   // Japanese Grand Prix
   suzuka: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Japan.png',
-  
+
   // Bahrain Grand Prix
   bahrain: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Bahrain.png',
-  
+
   // Saudi Arabian Grand Prix
   jeddah: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Saudi%20Arabia.png',
-  
+
   // Miami Grand Prix
   miami: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Miami.png',
-  
+
   // Emilia Romagna Grand Prix
   imola: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Emilia%20Romagna.png',
-  
+
   // Monaco Grand Prix
   monaco: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Monaco.png',
-  
+
   // Canadian Grand Prix
   villeneuve: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245030/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Canada.png',
-  
+
   // Spanish Grand Prix
   barcelona: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1680529432/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Spain.png',
-  
+
   // Austrian Grand Prix
   red_bull_ring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Austria.png',
-  
+
   // British Grand Prix
   silverstone: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245033/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Great%20Britain.png',
-  
+
   // Hungarian Grand Prix
   hungaroring: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Hungary.png',
-  
+
   // Belgian Grand Prix
   spa: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Belgium.png',
-  
+
   // Dutch Grand Prix
   zandvoort: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Netherlands.png',
-  
+
   // Italian Grand Prix
   monza: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245031/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Italy.png',
-  
+
   // Azerbaijan Grand Prix
   baku: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Azerbaijan.png',
-  
+
   // Singapore Grand Prix
   marina_bay: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1683639459/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Singapore.png',
-  
+
   // United States Grand Prix (COTA)
   americas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245034/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/USA.png',
-  
+
   // Mexican Grand Prix
   rodriguez: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Mexico.png',
-  
+
   // Brazilian Grand Prix (fallback to external if local not available)
   interlagos: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Brazil.png',
-  
+
   // Las Vegas Grand Prix
   vegas: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677249931/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Las%20Vegas.png',
-  
+
   // Qatar Grand Prix
   losail: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Qatar.png',
-  
+
   // Abu Dhabi Grand Prix
   yas_marina: 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Track%20Outline%20Images/Abu%20Dhabi.png',
 };
@@ -284,35 +284,35 @@ const getTrackImageUrl = (circuitId: string, sportMonksImages?: Record<string, s
   if (LOCAL_TRACK_IMAGES[circuitId]) {
     return LOCAL_TRACK_IMAGES[circuitId];
   }
-  
+
   // 2. Try normalized key for local images
   const normalizedId = circuitId.toLowerCase().replace(/[\s-]/g, '_');
   if (LOCAL_TRACK_IMAGES[normalizedId]) {
     return LOCAL_TRACK_IMAGES[normalizedId];
   }
-  
+
   // 3. Try SportMonks images if available
   if (sportMonksImages && sportMonksImages[circuitId]) {
     return sportMonksImages[circuitId];
   }
-  
+
   // 4. Try direct match in external F1 media
   if (EXTERNAL_TRACK_IMAGES[circuitId]) {
     return EXTERNAL_TRACK_IMAGES[circuitId];
   }
-  
+
   // 5. Try normalized key for external images
   if (EXTERNAL_TRACK_IMAGES[normalizedId]) {
     return EXTERNAL_TRACK_IMAGES[normalizedId];
   }
-  
+
   // 6. Try partial matches in external images
   for (const [key, url] of Object.entries(EXTERNAL_TRACK_IMAGES)) {
     if (normalizedId.includes(key) || key.includes(normalizedId)) {
       return url;
     }
   }
-  
+
   return null;
 };
 
@@ -339,14 +339,14 @@ export function TrackCarousel() {
   const [trackImages, setTrackImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Configure Embla: disable touch on desktop, enable on mobile
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: true, 
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: true,
     align: 'center',
     watchDrag: true, // Enable drag/swipe
   });
-  
+
   // Create a ref for the carousel DOM element (emblaRef is a callback ref)
   const carouselRef = useRef<HTMLDivElement>(null);
   const combinedRef = useCallback((node: HTMLDivElement | null) => {
@@ -355,7 +355,7 @@ export function TrackCarousel() {
       (carouselRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
     }
   }, [emblaRef]);
-  
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { selectedRound } = useTrackSelection();
 
@@ -364,7 +364,7 @@ export function TrackCarousel() {
     const fetchTrackImages = async () => {
         // Initialize with external F1 media URLs as fallback
         const imageMap: Record<string, string> = { ...EXTERNAL_TRACK_IMAGES };
-      
+
       try {
         // Try to fetch from SportMonks API if API token is provided via environment variable
         // For now, we'll use F1 media URLs which are reliable
@@ -398,7 +398,7 @@ export function TrackCarousel() {
         // Fetch all race results
         const resultsPromises: Promise<Response>[] = [];
         const qualifyingPromises: Promise<Response>[] = [];
-        
+
         for (let i = 0; i < 5; i++) {
           resultsPromises.push(fetch(`https://api.jolpi.ca/ergast/f1/current/results.json?limit=100&offset=${i * 100}`));
           qualifyingPromises.push(fetch(`https://api.jolpi.ca/ergast/f1/current/qualifying.json?limit=100&offset=${i * 100}`));
@@ -414,7 +414,7 @@ export function TrackCarousel() {
 
         // Merge race results
         const raceMap = new Map<string, RaceData>();
-        
+
         resultsData.forEach(data => {
           data.MRData.RaceTable.Races.forEach((race: any) => {
             if (!raceMap.has(race.round)) {
@@ -461,20 +461,38 @@ export function TrackCarousel() {
   // Detect mobile vs desktop
   useEffect(() => {
     const checkMobile = () => {
-      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
                             (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
       setIsMobile(isMobileDevice);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Track hover zoom state & handlers
+  const [isHoveringTrack, setIsHoveringTrack] = useState(false);
+  const [trackTransformOrigin, setTrackTransformOrigin] = useState('50% 50%');
+
+  const handleTrackMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setTrackTransformOrigin(`${(x / rect.width) * 100}% ${(y / rect.height) * 100}%`);
+    setIsHoveringTrack(true);
+  };
+
+  const handleTrackMouseLeave = () => {
+    setIsHoveringTrack(false);
+    setTrackTransformOrigin('50% 50%');
+  };
+
   // Handle carousel selection
   useEffect(() => {
     if (!emblaApi) return;
-    
+
     const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
     emblaApi.on('select', onSelect);
     return () => { emblaApi.off('select', onSelect); };
@@ -593,7 +611,7 @@ export function TrackCarousel() {
           } else {
             emblaApi.scrollPrev();
           }
-          
+
           isScrolling = false; // Reset after scroll
         }
       }
@@ -607,7 +625,7 @@ export function TrackCarousel() {
 
     // Add event listeners
     carouselElement.addEventListener('wheel', handleWheel, { passive: false });
-    
+
     // Only add touch handlers if needed (Embla handles mobile touch by default, but we need custom for desktop)
     if (!isMobile) {
       carouselElement.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -695,15 +713,26 @@ export function TrackCarousel() {
                         </div>
                       </div>
 
-                      {/* Track Map */}
-                      <div className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50 overflow-hidden">
+                      {/* Track Map (hover to zoom on desktop) */}
+                      <div
+                        className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50 overflow-hidden cursor-zoom-in"
+                        onMouseMove={handleTrackMouseMove}
+                        onMouseEnter={() => !isMobile && setIsHoveringTrack(true)}
+                        onMouseLeave={handleTrackMouseLeave}
+                        role="group"
+                      >
                         {trackImage ? (
                           <>
                             <img
                               src={trackImage}
                               alt={race.Circuit.circuitName}
-                              className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0 transition-opacity hover:opacity-100"
+                              className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0"
                               loading="lazy"
+                              style={{
+                                transform: isHoveringTrack ? 'scale(1.8)' : 'scale(1)',
+                                transformOrigin: trackTransformOrigin,
+                                transition: 'transform 250ms ease',
+                              }}
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;
                                 console.warn(`Failed to load track image for ${race.Circuit.circuitId}:`, trackImage);
@@ -712,7 +741,7 @@ export function TrackCarousel() {
                                 if (fallback) fallback.style.display = 'flex';
                               }}
                             />
-                            <div 
+                            <div
                               className="track-fallback text-muted-foreground text-sm flex items-center justify-center hidden"
                               style={{ minHeight: '128px', position: 'absolute', inset: 0 }}
                             >
@@ -723,7 +752,7 @@ export function TrackCarousel() {
                             </div>
                           </>
                         ) : (
-                          <div 
+                          <div
                             className="text-muted-foreground text-sm flex items-center justify-center"
                             style={{ minHeight: '128px' }}
                           >
@@ -745,7 +774,7 @@ export function TrackCarousel() {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <div 
+                              <div
                                 className="w-1 h-8 rounded-full"
                                 style={{ backgroundColor: getConstructorColor(poleSitter.Constructor.name) }}
                               />
@@ -776,7 +805,7 @@ export function TrackCarousel() {
                                   'bg-amber-700/10 border border-amber-700/30'
                                 }`}
                               >
-                                <div 
+                                <div
                                   className="w-1.5 h-1.5 rounded-full mx-auto mb-1"
                                   style={{ backgroundColor: getConstructorColor(result.Constructor.name) }}
                                 />
@@ -808,6 +837,23 @@ export function TrackCarousel() {
                 }`}
               />
             ))}
+          </div>
+
+          {/* Selection Slider (visible & slidable) */}
+          <div className="mt-4 px-2 sm:px-6">
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, races.length - 1)}
+              value={selectedIndex}
+              onChange={(e) => {
+                const idx = Number(e.target.value);
+                emblaApi?.scrollTo(idx);
+                setSelectedIndex(idx);
+              }}
+              className="w-full h-2 bg-transparent accent-primary"
+              aria-label="Track selector"
+            />
           </div>
         </div>
       </div>
