@@ -164,7 +164,13 @@ export function PointsProgressionChart({ topDrivers }: { topDrivers: Array<{ dri
                     fill="white"
                     stroke="none"
                     style={{ cursor: 'pointer' }}
-                    onClick={() => setSelectedRound(roundNum)}
+                    onClick={() => {
+                      setSelectedRound(roundNum);
+                      // Scroll to track carousel section
+                      setTimeout(() => {
+                        document.getElementById('track-carousel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }}
                   />
                 );
               }}
