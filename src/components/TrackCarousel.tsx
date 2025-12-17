@@ -730,10 +730,26 @@ export function TrackCarousel() {
             will-change: left, transform;
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.45));
             z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
 
           .racetrack-car .car-body { fill: #ff3b30; }
           .racetrack-car .car-wheel { fill: #111; }
+
+          /* Emoji car styling (flipped horizontally) */
+          .racetrack-emoji {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: 18px;
+            line-height: 1;
+            transform: scaleX(-1);
+            transform-origin: center;
+          }
 
           /* small bounce on active movement */
           .racetrack-car.move { transform: translate(-50%, -50%) translateY(-4px); }
@@ -927,11 +943,7 @@ export function TrackCarousel() {
                 style={{ left: `${races.length <= 1 ? 0 : (selectedIndex / Math.max(1, races.length - 1)) * 100}%` }}
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-                  <rect x="1" y="7" width="22" height="6" rx="2" className="car-body" />
-                  <circle cx="7" cy="16" r="2" className="car-wheel" />
-                  <circle cx="17" cy="16" r="2" className="car-wheel" />
-                </svg>
+                <span className="racetrack-emoji" aria-hidden="true">🏎️</span>
               </div>
 
               <input
