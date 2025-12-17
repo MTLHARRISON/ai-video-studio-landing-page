@@ -272,14 +272,14 @@ export default function TeamsPage() {
               {standings.map((standing) => {
                 const teamData = getTeamData(standing.Constructor.constructorId);
                 const teamColor = teamData?.color || '#666';
-                
+
                 return (
-                  <Link 
+                  <Link
                     key={standing.Constructor.constructorId}
                     to={`/teams/${standing.Constructor.constructorId}`}
                     className="group block"
                   >
-                    <div 
+                    <div
                       className="relative overflow-hidden bg-card/50 border border-border rounded-xl p-4 sm:p-6 hover:border-primary/50 transition-all duration-300"
                       style={{ borderLeftWidth: '4px', borderLeftColor: teamColor }}
                     >
@@ -336,7 +336,7 @@ export default function TeamsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.values(TEAM_HISTORICAL_DATA).sort((a, b) => b.worldChampionships - a.worldChampionships).map((team) => (
-              <Link 
+              <Link
                 key={team.id}
                 to={`/teams/${team.id}`}
                 className="group bg-card/50 border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-all duration-300"

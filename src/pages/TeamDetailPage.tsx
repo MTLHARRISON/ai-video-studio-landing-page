@@ -57,7 +57,7 @@ const TEAM_HISTORICAL_DATA: Record<string, TeamHistoricalData> = {
     color: '#3671C6',
     logo: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/2025/red-bull-racing.png',
     base: 'Milton Keynes, United Kingdom',
-    teamPrincipal: 'Christian Horner',
+    teamPrincipal: 'Laurent Mekies',
     founded: '2005',
     firstEntry: '2005',
     worldChampionships: 6,
@@ -121,7 +121,7 @@ const TEAM_HISTORICAL_DATA: Record<string, TeamHistoricalData> = {
     color: '#FF87BC',
     logo: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/2025/alpine.png',
     base: 'Enstone, United Kingdom',
-    teamPrincipal: 'Oliver Oakes',
+    teamPrincipal: 'Flavio Briatore',
     founded: '2021',
     firstEntry: '2021',
     worldChampionships: 2,
@@ -153,7 +153,7 @@ const TEAM_HISTORICAL_DATA: Record<string, TeamHistoricalData> = {
     color: '#6692FF',
     logo: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/2025/rb.png',
     base: 'Faenza, Italy',
-    teamPrincipal: 'Laurent Mekies',
+    teamPrincipal: 'Alan Permane',
     founded: '2006',
     firstEntry: '2006',
     worldChampionships: 0,
@@ -220,7 +220,7 @@ export default function TeamDetailPage() {
         const driversRes = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json');
         const driversData = await driversRes.json();
         const allDrivers = driversData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
-        
+
         // Filter drivers by constructor
         const teamDrivers = allDrivers
           .filter((d: any) => d.Constructors.some((c: any) => c.constructorId === teamId))
@@ -279,7 +279,7 @@ export default function TeamDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Teams
           </Link>
-          
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-2xl p-3 shadow-lg">
               <img src={teamData.logo} alt={teamData.name} className="w-full h-full object-contain" />
@@ -321,7 +321,7 @@ export default function TeamDetailPage() {
                 <TrendingUp className="w-5 h-5 text-primary" />
                 2025 Season Performance
               </h2>
-              
+
               {loading ? (
                 <div className="grid grid-cols-3 gap-4">
                   {[...Array(3)].map((_, i) => (
@@ -349,8 +349,8 @@ export default function TeamDetailPage() {
                   <h3 className="text-sm font-semibold text-muted-foreground mb-3">Current Drivers</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {drivers.map((driver) => (
-                      <div 
-                        key={driver.driverId} 
+                      <div
+                        key={driver.driverId}
                         className="flex items-center gap-3 bg-muted/30 rounded-lg p-3"
                         style={{ borderLeft: `3px solid ${teamData.color}` }}
                       >
