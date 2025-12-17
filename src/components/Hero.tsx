@@ -48,26 +48,6 @@ export function Hero() {
         transition={{ duration: 0.8, delay: 0.3 }}
         className="fixed top-0 left-0 right-0 w-full z-[110]"
       >
-        <div className="w-full px-4 sm:px-6 lg:px-12 py-3 sm:py-4 bg-black/50 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              <Flag className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
-              <span className="font-bold text-white text-lg sm:text-xl tracking-wider">F1 TRACKER</span>
-            </motion.div>
-
-            {/* Navigation */}
-            <div className="flex items-center">
-              <a href="#f1-championship" className="text-white hover:text-red-500 font-medium transition-colors text-sm sm:text-base">
-                Standings
-              </a>
-            </div>
-          </div>
-        </div>
       </motion.nav>
 
       {/* Hero Title */}
