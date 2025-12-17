@@ -745,7 +745,7 @@ export function TrackCarousel() {
             justify-content: center;
             width: 100%;
             height: 100%;
-            font-size: 36px;
+            font-size: 45px;
             line-height: 1;
             transform: scaleX(-1);
             transform-origin: center;
