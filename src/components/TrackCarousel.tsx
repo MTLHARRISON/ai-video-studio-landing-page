@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy, Search } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useTrackSelection } from '../lib/trackSelection';
 
@@ -715,23 +715,27 @@ export function TrackCarousel() {
 
                       {/* Track Map (hover to zoom on desktop) */}
                       <div
-                        className="relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50 overflow-hidden cursor-zoom-in"
+                        className={`relative h-32 sm:h-40 md:h-48 mb-4 flex items-center justify-center bg-muted/20 rounded-lg border border-border/50 overflow-hidden ${isHoveringTrack ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
                         onMouseMove={handleTrackMouseMove}
                         onMouseEnter={() => !isMobile && setIsHoveringTrack(true)}
                         onMouseLeave={handleTrackMouseLeave}
                         role="group"
                       >
+                        {/* Magnifier / Zoom indicator */}
+                        <div className={`absolute top-2 right-2 p-1 rounded bg-black/40 text-white transition-opacity ${isHoveringTrack ? 'opacity-100' : 'opacity-0'}`}>
+                          <Search className="w-4 h-4" />
+                        </div>
+
                         {trackImage ? (
                           <>
                             <img
                               src={trackImage}
                               alt={race.Circuit.circuitName}
-                              className="max-h-full max-w-full object-contain opacity-90 invert dark:invert-0"
+                              className={`max-h-full max-w-full object-contain opacity-90 invert dark:invert-0 transition-transform duration-200 ${isHoveringTrack ? 'shadow-2xl ring-2 ring-white/10' : ''}`}
                               loading="lazy"
                               style={{
                                 transform: isHoveringTrack ? 'scale(1.8)' : 'scale(1)',
                                 transformOrigin: trackTransformOrigin,
-                                transition: 'transform 250ms ease',
                               }}
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;
@@ -826,18 +830,7 @@ export function TrackCarousel() {
             </div>
           </div>
 
-          {/* Dots Indicator */}
-          <div className="flex justify-center gap-1.5 mt-6">
-            {races.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => emblaApi?.scrollTo(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  selectedIndex === index ? 'bg-primary w-6' : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                }`}
-              />
-            ))}
-          </div>
+
 
           {/* Selection Slider (visible & slidable) */}
           <div className="mt-4 px-2 sm:px-6">
