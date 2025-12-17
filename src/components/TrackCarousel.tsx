@@ -489,6 +489,16 @@ export function TrackCarousel() {
     setTrackTransformOrigin('50% 50%');
   };
 
+  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!races || races.length === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    const idx = Math.round(ratio * (races.length - 1));
+    emblaApi?.scrollTo(idx);
+    setSelectedIndex(idx);
+  };
+
   // Handle carousel selection
   useEffect(() => {
     if (!emblaApi) return;
@@ -663,54 +673,74 @@ export function TrackCarousel() {
     <div className="py-12 sm:py-20 bg-gradient-to-b from-muted/30 to-background">
       <div className="container mx-auto px-4 sm:px-6">
         <style>{`
-          /* Checkered flag slider thumb */
+          /* Checkered flag slider thumb (kept for accessibility) */
           .track-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            background: transparent;
+            position: absolute;
+            inset: 0;
             width: 100%;
-            height: 8px;
-          }
-          .track-slider:focus { outline: none; }
-
-          .track-slider::-webkit-slider-runnable-track {
-            height: 8px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-            border-radius: 9999px;
-          }
-          .track-slider::-moz-range-track {
-            height: 8px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-            border-radius: 9999px;
-          }
-
-          /* Checkered flag SVG used as the thumb */
-          .track-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 4px;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><rect x='4' y='5' width='7' height='7' fill='%23ffffff'/><rect x='4' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='8.5' y='5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='12' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='4' y='9.5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='8.5' y='9.5' width='3.5' height='3.5' fill='%23000000'/><path d='M3 4v15' stroke='%23000000' stroke-width='1.2' stroke-linecap='round'/></svg>");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
-            border: none;
+            height: 100%;
+            opacity: 0; /* hide native thumb visually but keep accessible */
             cursor: pointer;
           }
 
-          .track-slider::-moz-range-thumb {
-            width: 22px;
-            height: 22px;
-            border: none;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><rect x='4' y='5' width='7' height='7' fill='%23ffffff'/><rect x='4' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='8.5' y='5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='12' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='4' y='9.5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='8.5' y='9.5' width='3.5' height='3.5' fill='%23000000'/><path d='M3 4v15' stroke='%23000000' stroke-width='1.2' stroke-linecap='round'/></svg>");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
-            cursor: pointer;
+          /* Racetrack visuals */
+          .racetrack-container {
+            position: relative;
+            width: 100%;
+            height: 48px;
+            max-width: 900px;
+            margin: 0 auto;
+            user-select: none;
           }
+
+          .racetrack {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 10px;
+            border-radius: 9999px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(18,18,18,0.9));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 4px 18px rgba(0,0,0,0.35);
+            overflow: hidden;
+          }
+
+          /* subtle dashed center line to mimic lane markings */
+          .racetrack::after {
+            content: '';
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            top: 50%;
+            height: 2px;
+            transform: translateY(-50%);
+            background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0 8px, transparent 8px 16px);
+            opacity: 0.9;
+            border-radius: 9999px;
+          }
+
+          .racetrack-car {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 20px;
+            transition: left 300ms cubic-bezier(.2,.9,.2,1), transform 160ms;
+            will-change: left, transform;
+            filter: drop-shadow(0 6px 8px rgba(0,0,0,0.45));
+            z-index: 20;
+          }
+
+          .racetrack-car .car-body { fill: #ff3b30; }
+          .racetrack-car .car-wheel { fill: #111; }
+
+          /* small bounce on active movement */
+          .racetrack-car.move { transform: translate(-50%, -50%) translateY(-4px); }
+
+          /* keep fallback styling for browsers without range thumb SVG support */
+          .track-slider::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+          .track-slider::-moz-range-track { height: 100%; background: transparent; }
         `}</style>
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
@@ -882,21 +912,42 @@ export function TrackCarousel() {
 
 
 
-          {/* Selection Slider (visible & slidable) */}
+          {/* Selection Slider (racetrack with moving car) */}
           <div className="mt-4 px-2 sm:px-6">
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0, races.length - 1)}
-              value={selectedIndex}
-              onChange={(e) => {
-                const idx = Number(e.target.value);
-                emblaApi?.scrollTo(idx);
-                setSelectedIndex(idx);
-              }}
-              className="track-slider w-full h-2 bg-transparent accent-primary"
+            <div
+              className="racetrack-container"
+              onClick={handleTrackClick}
+              role="group"
               aria-label="Track selector"
-            />
+            >
+              <div className="racetrack" />
+
+              <div
+                className={`racetrack-car ${'move'} pointer-events-none`}
+                style={{ left: `${races.length <= 1 ? 0 : (selectedIndex / Math.max(1, races.length - 1)) * 100}%` }}
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                  <rect x="1" y="7" width="22" height="6" rx="2" className="car-body" />
+                  <circle cx="7" cy="16" r="2" className="car-wheel" />
+                  <circle cx="17" cy="16" r="2" className="car-wheel" />
+                </svg>
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, races.length - 1)}
+                value={selectedIndex}
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  emblaApi?.scrollTo(idx);
+                  setSelectedIndex(idx);
+                }}
+                className="track-slider"
+                aria-label="Track selector"
+              />
+            </div>
           </div>
         </div>
       </div>
