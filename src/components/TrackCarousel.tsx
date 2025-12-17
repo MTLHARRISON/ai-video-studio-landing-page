@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Timer, Trophy } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useTrackSelection } from '../lib/trackSelection';
@@ -347,6 +347,15 @@ export function TrackCarousel() {
     watchDrag: true, // Enable drag/swipe
   });
   
+  // Create a ref for the carousel DOM element (emblaRef is a callback ref)
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const combinedRef = useCallback((node: HTMLDivElement | null) => {
+    emblaRef(node);
+    if (carouselRef.current !== node) {
+      (carouselRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [emblaRef]);
+  
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { selectedRound } = useTrackSelection();
 
@@ -491,7 +500,7 @@ export function TrackCarousel() {
   useEffect(() => {
     if (!emblaApi) return;
 
-    const carouselElement = emblaRef.current;
+    const carouselElement = carouselRef.current;
     if (!carouselElement) return;
 
     // State for touch gestures
@@ -614,7 +623,7 @@ export function TrackCarousel() {
         carouselElement.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [emblaApi, emblaRef, isMobile]);
+  }, [emblaApi, carouselRef, isMobile]);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -661,7 +670,7 @@ export function TrackCarousel() {
           </button>
 
           {/* Carousel */}
-          <div className="overflow-hidden" ref={emblaRef}>
+          <div className="overflow-hidden" ref={combinedRef}>
             <div className="flex">
               {races.map((race, index) => {
                 const trackImage = getTrackImageUrl(race.Circuit.circuitId, trackImages);
