@@ -662,6 +662,56 @@ export function TrackCarousel() {
   return (
     <div className="py-12 sm:py-20 bg-gradient-to-b from-muted/30 to-background">
       <div className="container mx-auto px-4 sm:px-6">
+        <style>{`
+          /* Checkered flag slider thumb */
+          .track-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            width: 100%;
+            height: 8px;
+          }
+          .track-slider:focus { outline: none; }
+
+          .track-slider::-webkit-slider-runnable-track {
+            height: 8px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border-radius: 9999px;
+          }
+          .track-slider::-moz-range-track {
+            height: 8px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border-radius: 9999px;
+          }
+
+          /* Checkered flag SVG used as the thumb */
+          .track-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><rect x='4' y='5' width='7' height='7' fill='%23ffffff'/><rect x='4' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='8.5' y='5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='12' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='4' y='9.5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='8.5' y='9.5' width='3.5' height='3.5' fill='%23000000'/><path d='M3 4v15' stroke='%23000000' stroke-width='1.2' stroke-linecap='round'/></svg>");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+            border: none;
+            cursor: pointer;
+          }
+
+          .track-slider::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><rect x='4' y='5' width='7' height='7' fill='%23ffffff'/><rect x='4' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='8.5' y='5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='12' y='5' width='3.5' height='3.5' fill='%23000000'/><rect x='4' y='9.5' width='3.5' height='3.5' fill='%23ffffff'/><rect x='8.5' y='9.5' width='3.5' height='3.5' fill='%23000000'/><path d='M3 4v15' stroke='%23000000' stroke-width='1.2' stroke-linecap='round'/></svg>");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+            cursor: pointer;
+          }
+        `}</style>
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -844,7 +894,7 @@ export function TrackCarousel() {
                 emblaApi?.scrollTo(idx);
                 setSelectedIndex(idx);
               }}
-              className="w-full h-2 bg-transparent accent-primary"
+              className="track-slider w-full h-2 bg-transparent accent-primary"
               aria-label="Track selector"
             />
           </div>
