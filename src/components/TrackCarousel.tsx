@@ -774,25 +774,29 @@ export function TrackCarousel() {
           /* Smoke particles */
           @keyframes smoke-fade {
             0% {
-              opacity: 0.7;
-              transform: translateX(-50%) scale(0.5);
+              opacity: 1;
+              transform: translate(-100%, -50%) scale(0.8);
+            }
+            50% {
+              opacity: 0.6;
             }
             100% {
               opacity: 0;
-              transform: translateX(-50%) scale(2);
+              transform: translate(-150%, -50%) scale(2.5);
             }
           }
 
           .smoke-particle {
             position: absolute;
-            bottom: 100%;
-            width: 30px;
-            height: 30px;
-            background: radial-gradient(circle, rgba(180,180,180,0.8) 0%, rgba(120,120,120,0.4) 40%, transparent 70%);
+            top: 50%;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(200,200,200,0.7) 30%, rgba(150,150,150,0.4) 60%, transparent 80%);
             border-radius: 50%;
             pointer-events: none;
             animation: smoke-fade 0.5s ease-out forwards;
-            z-index: 10;
+            z-index: 5;
+            filter: blur(3px);
           }
 
           /* keep fallback styling for browsers without range thumb SVG support */
