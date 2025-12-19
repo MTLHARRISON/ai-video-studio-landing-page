@@ -357,7 +357,24 @@ export function TrackCarousel() {
   }, [emblaRef]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [smokeParticles, setSmokeParticles] = useState<{ id: number; left: number }[]>([]);
+  const prevIndexRef = useRef(0);
   const { selectedRound } = useTrackSelection();
+
+  // Create smoke when car moves
+  useEffect(() => {
+    if (prevIndexRef.current !== selectedIndex && races.length > 1) {
+      const carPosition = (selectedIndex / Math.max(1, races.length - 1)) * 100;
+      const newSmoke = { id: Date.now(), left: carPosition };
+      setSmokeParticles(prev => [...prev, newSmoke]);
+      
+      // Remove smoke after animation completes
+      setTimeout(() => {
+        setSmokeParticles(prev => prev.filter(p => p.id !== newSmoke.id));
+      }, 500);
+    }
+    prevIndexRef.current = selectedIndex;
+  }, [selectedIndex, races.length]);
 
   // Fetch track images - try SportMonks first, fallback to F1 media
   useEffect(() => {
@@ -754,6 +771,30 @@ export function TrackCarousel() {
           /* small bounce on active movement */
           .racetrack-car.move { transform: translateX(-50%) translateY(-4px); }
 
+          /* Smoke particles */
+          @keyframes smoke-fade {
+            0% {
+              opacity: 0.7;
+              transform: translateX(-50%) scale(0.5);
+            }
+            100% {
+              opacity: 0;
+              transform: translateX(-50%) scale(2);
+            }
+          }
+
+          .smoke-particle {
+            position: absolute;
+            bottom: 100%;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(180,180,180,0.8) 0%, rgba(120,120,120,0.4) 40%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: smoke-fade 0.5s ease-out forwards;
+            z-index: 10;
+          }
+
           /* keep fallback styling for browsers without range thumb SVG support */
           .track-slider::-webkit-slider-runnable-track { height: 100%; background: transparent; }
           .track-slider::-moz-range-track { height: 100%; background: transparent; }
@@ -945,6 +986,15 @@ export function TrackCarousel() {
               >
                 <span className="racetrack-emoji" aria-hidden="true">🏎️</span>
               </div>
+
+              {/* Smoke particles */}
+              {smokeParticles.map(particle => (
+                <div
+                  key={particle.id}
+                  className="smoke-particle"
+                  style={{ left: `${particle.left}%` }}
+                />
+              ))}
 
               <input
                 type="range"
