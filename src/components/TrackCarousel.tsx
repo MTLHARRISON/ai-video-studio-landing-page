@@ -777,6 +777,12 @@ export function TrackCarousel() {
             border-radius: 50%;
             background: #e80020;
             box-shadow: 0 0 4px #e80020, 0 0 8px rgba(232, 0, 32, 0.5);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+          }
+
+          .starting-lights.go .light {
+            background: #00e800;
+            box-shadow: 0 0 4px #00e800, 0 0 8px rgba(0, 232, 0, 0.5);
           }
 
           /* Checkered flag */
@@ -983,7 +989,7 @@ export function TrackCarousel() {
               </div>
 
               {/* Starting lights */}
-              <div className="starting-lights" aria-hidden="true">
+              <div className={`starting-lights ${selectedIndex > 0 ? 'go' : ''}`} aria-hidden="true">
                 <div className="light-row">
                   <div className="light" />
                   <div className="light" />
