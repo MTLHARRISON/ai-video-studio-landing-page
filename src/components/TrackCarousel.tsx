@@ -722,8 +722,8 @@ export function TrackCarousel() {
 
           .racetrack-car {
             position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            bottom: 100%;
+            transform: translateX(-50%);
             width: 36px;
             height: 20px;
             transition: left 300ms cubic-bezier(.2,.9,.2,1), transform 160ms;
@@ -752,7 +752,7 @@ export function TrackCarousel() {
           }
 
           /* small bounce on active movement */
-          .racetrack-car.move { transform: translate(-50%, -50%) translateY(-4px); }
+          .racetrack-car.move { transform: translateX(-50%) translateY(-4px); }
 
           /* keep fallback styling for browsers without range thumb SVG support */
           .track-slider::-webkit-slider-runnable-track { height: 100%; background: transparent; }
