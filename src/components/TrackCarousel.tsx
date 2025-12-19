@@ -357,24 +357,7 @@ export function TrackCarousel() {
   }, [emblaRef]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [smokeParticles, setSmokeParticles] = useState<{ id: number; left: number }[]>([]);
-  const prevIndexRef = useRef(0);
   const { selectedRound } = useTrackSelection();
-
-  // Create smoke when car moves
-  useEffect(() => {
-    if (prevIndexRef.current !== selectedIndex && races.length > 1) {
-      const carPosition = (selectedIndex / Math.max(1, races.length - 1)) * 100;
-      const newSmoke = { id: Date.now(), left: carPosition };
-      setSmokeParticles(prev => [...prev, newSmoke]);
-      
-      // Remove smoke after animation completes
-      setTimeout(() => {
-        setSmokeParticles(prev => prev.filter(p => p.id !== newSmoke.id));
-      }, 500);
-    }
-    prevIndexRef.current = selectedIndex;
-  }, [selectedIndex, races.length]);
 
   // Fetch track images - try SportMonks first, fallback to F1 media
   useEffect(() => {
@@ -771,32 +754,40 @@ export function TrackCarousel() {
           /* small bounce on active movement */
           .racetrack-car.move { transform: translateX(-50%) translateY(-4px); }
 
-          /* Smoke particles */
-          @keyframes smoke-fade {
-            0% {
-              opacity: 1;
-              transform: translate(-100%, -50%) scale(0.8);
-            }
-            50% {
-              opacity: 0.6;
-            }
-            100% {
-              opacity: 0;
-              transform: translate(-150%, -50%) scale(2.5);
-            }
+          /* Starting lights */
+          .starting-lights {
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 15;
           }
 
-          .smoke-particle {
-            position: absolute;
-            top: 50%;
-            width: 50px;
-            height: 50px;
-            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(200,200,200,0.7) 30%, rgba(150,150,150,0.4) 60%, transparent 80%);
+          .light-row {
+            display: flex;
+            gap: 2px;
+          }
+
+          .light {
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            pointer-events: none;
-            animation: smoke-fade 0.5s ease-out forwards;
-            z-index: 5;
-            filter: blur(3px);
+            background: #e80020;
+            box-shadow: 0 0 4px #e80020, 0 0 8px rgba(232, 0, 32, 0.5);
+          }
+
+          /* Checkered flag */
+          .checkered-flag {
+            position: absolute;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            z-index: 15;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
           }
 
           /* keep fallback styling for browsers without range thumb SVG support */
@@ -991,14 +982,24 @@ export function TrackCarousel() {
                 <span className="racetrack-emoji" aria-hidden="true">🏎️</span>
               </div>
 
-              {/* Smoke particles */}
-              {smokeParticles.map(particle => (
-                <div
-                  key={particle.id}
-                  className="smoke-particle"
-                  style={{ left: `${particle.left}%` }}
-                />
-              ))}
+              {/* Starting lights */}
+              <div className="starting-lights" aria-hidden="true">
+                <div className="light-row">
+                  <div className="light" />
+                  <div className="light" />
+                </div>
+                <div className="light-row">
+                  <div className="light" />
+                  <div className="light" />
+                </div>
+                <div className="light-row">
+                  <div className="light" />
+                  <div className="light" />
+                </div>
+              </div>
+
+              {/* Checkered flag */}
+              <div className="checkered-flag" aria-hidden="true">🏁</div>
 
               <input
                 type="range"
