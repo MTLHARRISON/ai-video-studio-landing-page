@@ -1,138 +1,219 @@
+import { useState } from "react";
+import { Search, Music2, Plus, Check, Clock, Disc3 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import AnimationShowcase from "@/components/AnimationShowcase";
-import GlassCard from "@/components/GlassCard";
+import { toast } from "@/hooks/use-toast";
 
-const Index = () => {
+// Mock track data
+const mockTracks = [
+  { id: "1", title: "Blinding Lights", artist: "The Weeknd", album: "After Hours", duration: "3:20", cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop" },
+  { id: "2", title: "Uptown Funk", artist: "Bruno Mars", album: "Uptown Special", duration: "4:30", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&h=100&fit=crop" },
+  { id: "3", title: "Shape of You", artist: "Ed Sheeran", album: "÷", duration: "3:53", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop" },
+  { id: "4", title: "Don't Start Now", artist: "Dua Lipa", album: "Future Nostalgia", duration: "3:03", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&h=100&fit=crop" },
+  { id: "5", title: "Levitating", artist: "Dua Lipa", album: "Future Nostalgia", duration: "3:23", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&h=100&fit=crop" },
+  { id: "6", title: "Flowers", artist: "Miley Cyrus", album: "Endless Summer Vacation", duration: "3:20", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=100&h=100&fit=crop" },
+  { id: "7", title: "Anti-Hero", artist: "Taylor Swift", album: "Midnights", duration: "3:20", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=100&h=100&fit=crop" },
+  { id: "8", title: "As It Was", artist: "Harry Styles", album: "Harry's House", duration: "2:47", cover: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=100&h=100&fit=crop" },
+];
+
+interface QueueItem {
+  id: string;
+  track: typeof mockTracks[0];
+  addedBy: string;
+  addedAt: Date;
+}
+
+const guestNames = ["Party Guest", "Music Lover", "Dance Floor", "DJ Wannabe", "Vibe Curator", "Song Hunter"];
+
+export default function Index() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [recentlyAdded, setRecentlyAdded] = useState<Set<string>>(new Set());
+
+  const filteredTracks = searchQuery.length > 0
+    ? mockTracks.filter(
+        (track) =>
+          track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          track.artist.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const addToQueue = (track: typeof mockTracks[0]) => {
+    // Check if song was added recently (within last 10 minutes - simulated)
+    if (recentlyAdded.has(track.id)) {
+      toast({
+        title: "Already in queue! 🎵",
+        description: "This song was added recently. Try another banger!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomGuest = guestNames[Math.floor(Math.random() * guestNames.length)];
+    
+    setQueue((prev) => [
+      ...prev,
+      {
+        id: `${track.id}-${Date.now()}`,
+        track,
+        addedBy: randomGuest,
+        addedAt: new Date(),
+      },
+    ]);
+
+    setRecentlyAdded((prev) => new Set([...prev, track.id]));
+
+    // Remove from recently added after 10 minutes (demo: 30 seconds)
+    setTimeout(() => {
+      setRecentlyAdded((prev) => {
+        const next = new Set(prev);
+        next.delete(track.id);
+        return next;
+      });
+    }, 30000);
+
+    toast({
+      title: "Added to queue! 🎉",
+      description: `"${track.title}" is now in the party queue!`,
+    });
+
+    setSearchQuery("");
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/20 via-accent-purple/10 to-accent-emerald/20"></div>
-        
-        <div className="relative z-10 text-center space-y-8 max-w-4xl mx-auto px-4">
-          <h1 className="font-bagel text-6xl md:text-8xl text-shadow-strong">
-            BAGEL FAT
-          </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Демонстрация красивой дизайн-системы с анимациями и эффектами
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-fuchsia-900 text-white">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-2xl">
+        {/* Header */}
+        <header className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Disc3 className="w-12 h-12 text-pink-400 animate-spin" style={{ animationDuration: "3s" }} />
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              Party Jukebox
+            </h1>
+            <Disc3 className="w-12 h-12 text-cyan-400 animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
+          </div>
+          <p className="text-lg text-purple-200 flex items-center justify-center gap-2">
+            <Music2 className="w-5 h-5" />
+            Search a song and add it to the party queue 🎶
           </p>
-          
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button 
-              className="glass-effect hover:glass-effect gentle-animation px-8 py-3"
-              style={{ background: 'var(--accent-blue)', borderColor: 'rgba(255,255,255,0.3)' }}
-            >
-              Начать
-            </Button>
-            <Button 
-              variant="outline"
-              className="glass-effect hover:glass-effect gentle-animation px-8 py-3"
-            >
-              Узнать больше
-            </Button>
-          </div>
-        </div>
+        </header>
 
-        {/* Floating elements */}
-        <div className="absolute top-20 left-20 w-4 h-4 bg-accent-blue rounded-full float-gentle opacity-60"></div>
-        <div className="absolute top-40 right-32 w-6 h-6 bg-accent-emerald rounded-full drift-left opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-5 h-5 bg-accent-purple rounded-full drift-right opacity-50"></div>
-      </section>
-
-      {/* Animation Showcase */}
-      <section className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-16 font-bagel">
-            Анимации и Эффекты
-          </h2>
-          <AnimationShowcase />
-        </div>
-      </section>
-
-      {/* Glass Effects Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-accent-blue/5 via-accent-purple/5 to-accent-emerald/5">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-16 font-bagel">
-            Стеклянные Эффекты
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <GlassCard 
-              title="Стекло"
-              description="Основной стеклянный эффект с размытием и прозрачностью"
-              className="glass-effect"
-            />
-            <GlassCard 
-              title="Навигация"
-              description="Усиленный эффект для навигационных элементов"
-              className="glass-navbar"
-            />
-            <GlassCard 
-              title="Свечение"
-              description="Эффект с пульсирующим свечением"
-              className="glass-effect pulse-glow"
+        {/* Search Section */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-300" />
+            <Input
+              type="text"
+              placeholder="Search for a song or artist..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-6 text-lg bg-white/10 border-white/20 text-white placeholder:text-purple-300 rounded-2xl focus:ring-2 focus:ring-pink-400 focus:border-transparent"
             />
           </div>
-        </div>
-      </section>
 
-      {/* Typography Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h2 className="text-4xl font-bold font-bagel">Типографика</h2>
-          
-          <div className="space-y-6">
-            <h1 className="font-bagel text-shadow-medium">Заголовок H1 с Bagel Fat</h1>
-            <h2>Заголовок H2 с системным шрифтом</h2>
-            <h3>Заголовок H3 с улучшенной типографикой</h3>
-            <p>
-              Обычный текст с оптимизированными интервалами и читаемостью. 
-              Система поддерживает адаптивные размеры и правильные пропорции.
-            </p>
-          </div>
-        </div>
-      </section>
+          {/* Search Results */}
+          {filteredTracks.length > 0 && (
+            <div className="mt-4 bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20">
+              {filteredTracks.map((track) => (
+                <div
+                  key={track.id}
+                  className="flex items-center gap-4 p-4 hover:bg-white/10 transition-colors border-b border-white/10 last:border-0"
+                >
+                  <img
+                    src={track.cover}
+                    alt={track.album}
+                    className="w-14 h-14 rounded-lg object-cover shadow-lg"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white truncate">{track.title}</h3>
+                    <p className="text-sm text-purple-200 truncate">{track.artist}</p>
+                  </div>
+                  <span className="text-sm text-purple-300 hidden sm:block">{track.duration}</span>
+                  <Button
+                    onClick={() => addToQueue(track)}
+                    disabled={recentlyAdded.has(track.id)}
+                    className={`rounded-xl px-6 py-6 text-base font-semibold transition-all ${
+                      recentlyAdded.has(track.id)
+                        ? "bg-green-500/50 cursor-not-allowed"
+                        : "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 hover:scale-105"
+                    }`}
+                  >
+                    {recentlyAdded.has(track.id) ? (
+                      <Check className="w-5 h-5" />
+                    ) : (
+                      <Plus className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
 
-      {/* Color Palette */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-16 font-bagel">
-            Цветовая Палитра
+          {searchQuery.length > 0 && filteredTracks.length === 0 && (
+            <div className="mt-4 text-center py-8 text-purple-300">
+              <Music2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No songs found. Try a different search!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Queue Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Clock className="w-6 h-6 text-cyan-400" />
+            Party Queue
+            <span className="text-sm font-normal text-purple-300 ml-2">
+              ({queue.length} {queue.length === 1 ? "song" : "songs"})
+            </span>
           </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-8 text-center subtle-shadow gentle-animation hover:elevated-shadow">
-              <div 
-                className="w-20 h-20 rounded-full mx-auto mb-4"
-                style={{ backgroundColor: 'var(--accent-blue)' }}
-              ></div>
-              <h3 className="text-xl font-semibold mb-2">Accent Blue</h3>
-              <p className="text-muted-foreground">#2563eb</p>
-            </Card>
-            
-            <Card className="p-8 text-center subtle-shadow gentle-animation hover:elevated-shadow">
-              <div 
-                className="w-20 h-20 rounded-full mx-auto mb-4"
-                style={{ backgroundColor: 'var(--accent-emerald)' }}
-              ></div>
-              <h3 className="text-xl font-semibold mb-2">Accent Emerald</h3>
-              <p className="text-muted-foreground">#059669</p>
-            </Card>
-            
-            <Card className="p-8 text-center subtle-shadow gentle-animation hover:elevated-shadow">
-              <div 
-                className="w-20 h-20 rounded-full mx-auto mb-4"
-                style={{ backgroundColor: 'var(--accent-purple)' }}
-              ></div>
-              <h3 className="text-xl font-semibold mb-2">Accent Purple</h3>
-              <p className="text-muted-foreground">#7c3aed</p>
-            </Card>
-          </div>
+
+          {queue.length === 0 ? (
+            <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+              <Disc3 className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
+              <p className="text-purple-300 text-lg">The queue is empty!</p>
+              <p className="text-purple-400 text-sm mt-1">Search for a song above to get the party started 🎉</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {queue.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 transition-all hover:bg-white/15"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center font-bold text-sm">
+                    {index + 1}
+                  </div>
+                  <img
+                    src={item.track.cover}
+                    alt={item.track.album}
+                    className="w-12 h-12 rounded-lg object-cover shadow-lg"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white truncate">{item.track.title}</h3>
+                    <p className="text-sm text-purple-200 truncate">{item.track.artist}</p>
+                  </div>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-xs text-purple-300">{item.track.duration}</p>
+                    <p className="text-xs text-pink-300">Added by {item.addedBy}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </section>
+
+        {/* Footer */}
+        <footer className="mt-12 text-center text-purple-400 text-sm">
+          <p>🎵 Demo Jukebox • Songs are for display only 🎵</p>
+        </footer>
+      </div>
     </div>
   );
-};
-
-export default Index;
+}
