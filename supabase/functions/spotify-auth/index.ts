@@ -117,9 +117,13 @@ serve(async (req) => {
       });
 
       if (insertError) {
-        console.error('Error saving tokens:', insertError);
+        console.error('Error saving tokens:', JSON.stringify(insertError, null, 2));
         return new Response(
-          JSON.stringify({ error: 'Failed to save tokens' }),
+          JSON.stringify({ 
+            error: 'Failed to save tokens',
+            details: insertError.message || insertError.code || JSON.stringify(insertError),
+            hint: insertError.hint || null
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
