@@ -115,12 +115,6 @@ export default function Index() {
   const searchSpotify = async (query: string) => {
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke('spotify', {
-        body: null,
-        headers: {},
-      });
-
-      // Use query params for GET-like request
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}`,
         {
