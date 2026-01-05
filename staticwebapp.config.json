@@ -1,12 +1,1 @@
-{
-  "routes": [
-    {
-      "route": "/host",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "statusCode": 200
-    }
-  ]
-}
+{}
