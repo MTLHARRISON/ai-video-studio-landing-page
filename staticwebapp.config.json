@@ -5,7 +5,8 @@
       "methods": [
         "get",
         "post"
-      ]
+      ],
+      "statusCode": 200
     }
   ]
 }
