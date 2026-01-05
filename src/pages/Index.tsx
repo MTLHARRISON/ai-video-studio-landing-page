@@ -1,46 +1,176 @@
-import { useState } from "react";
-import { Search, Music2, Plus, Check, Clock, Disc3 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Music2, Plus, Check, Clock, Disc3, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock track data
-const mockTracks = [
-  { id: "1", title: "Blinding Lights", artist: "The Weeknd", album: "After Hours", duration: "3:20", cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop" },
-  { id: "2", title: "Uptown Funk", artist: "Bruno Mars", album: "Uptown Special", duration: "4:30", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&h=100&fit=crop" },
-  { id: "3", title: "Shape of You", artist: "Ed Sheeran", album: "÷", duration: "3:53", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop" },
-  { id: "4", title: "Don't Start Now", artist: "Dua Lipa", album: "Future Nostalgia", duration: "3:03", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&h=100&fit=crop" },
-  { id: "5", title: "Levitating", artist: "Dua Lipa", album: "Future Nostalgia", duration: "3:23", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&h=100&fit=crop" },
-  { id: "6", title: "Flowers", artist: "Miley Cyrus", album: "Endless Summer Vacation", duration: "3:20", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=100&h=100&fit=crop" },
-  { id: "7", title: "Anti-Hero", artist: "Taylor Swift", album: "Midnights", duration: "3:20", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=100&h=100&fit=crop" },
-  { id: "8", title: "As It Was", artist: "Harry Styles", album: "Harry's House", duration: "2:47", cover: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=100&h=100&fit=crop" },
-];
+interface SpotifyTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  durationFormatted: string;
+  cover: string | null;
+}
 
 interface QueueItem {
   id: string;
-  track: typeof mockTracks[0];
-  addedBy: string;
-  addedAt: Date;
+  spotify_track_id: string;
+  track_title: string;
+  track_artist: string;
+  track_album: string | null;
+  track_duration_ms: number | null;
+  track_cover_url: string | null;
+  added_by: string;
+  created_at: string;
 }
 
 const guestNames = ["Party Guest", "Music Lover", "Dance Floor", "DJ Wannabe", "Vibe Curator", "Song Hunter"];
 
+// Get or create a session ID for rate limiting
+function getSessionId(): string {
+  let sessionId = localStorage.getItem('jukebox_session_id');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem('jukebox_session_id', sessionId);
+  }
+  return sessionId;
+}
+
+// Get or create a guest name
+function getGuestName(): string {
+  let guestName = localStorage.getItem('jukebox_guest_name');
+  if (!guestName) {
+    guestName = guestNames[Math.floor(Math.random() * guestNames.length)];
+    localStorage.setItem('jukebox_guest_name', guestName);
+  }
+  return guestName;
+}
+
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<Set<string>>(new Set());
+  const [lastAddTime, setLastAddTime] = useState<number>(0);
 
-  const filteredTracks = searchQuery.length > 0
-    ? mockTracks.filter(
-        (track) =>
-          track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          track.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  const sessionId = getSessionId();
+  const guestName = getGuestName();
+
+  // Load queue on mount and subscribe to realtime updates
+  useEffect(() => {
+    loadQueue();
+
+    const channel = supabase
+      .channel('queue-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'queue',
+        },
+        () => {
+          loadQueue();
+        }
       )
-    : [];
+      .subscribe();
 
-  const addToQueue = (track: typeof mockTracks[0]) => {
-    // Check if song was added recently (within last 10 minutes - simulated)
-    if (recentlyAdded.has(track.id)) {
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadQueue = async () => {
+    const { data, error } = await supabase
+      .from('queue')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error loading queue:', error);
+      return;
+    }
+
+    setQueue(data || []);
+  };
+
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchSpotify(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const searchSpotify = async (query: string) => {
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('spotify', {
+        body: null,
+        headers: {},
+      });
+
+      // Use query params for GET-like request
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+
+      const result = await response.json();
+      setSearchResults(result.tracks || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search failed",
+        description: "Could not search Spotify. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const addToQueue = async (track: SpotifyTrack) => {
+    // Rate limit: 1 song every 2 minutes per session
+    const now = Date.now();
+    const timeSinceLastAdd = now - lastAddTime;
+    const cooldownMs = 120000; // 2 minutes
+
+    if (timeSinceLastAdd < cooldownMs) {
+      const remainingSeconds = Math.ceil((cooldownMs - timeSinceLastAdd) / 1000);
+      toast({
+        title: "Slow down! 🎵",
+        description: `Wait ${remainingSeconds} seconds before adding another song.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate in last 10 minutes
+    const tenMinutesAgo = new Date(now - 600000).toISOString();
+    const recentDuplicate = queue.find(
+      (item) => item.spotify_track_id === track.id && item.created_at > tenMinutesAgo
+    );
+
+    if (recentDuplicate) {
       toast({
         title: "Already in queue! 🎵",
         description: "This song was added recently. Try another banger!",
@@ -49,28 +179,30 @@ export default function Index() {
       return;
     }
 
-    const randomGuest = guestNames[Math.floor(Math.random() * guestNames.length)];
-    
-    setQueue((prev) => [
-      ...prev,
-      {
-        id: `${track.id}-${Date.now()}`,
-        track,
-        addedBy: randomGuest,
-        addedAt: new Date(),
-      },
-    ]);
+    // Add to database
+    const { error } = await supabase.from('queue').insert({
+      spotify_track_id: track.id,
+      track_title: track.title,
+      track_artist: track.artist,
+      track_album: track.album,
+      track_duration_ms: track.duration,
+      track_cover_url: track.cover,
+      added_by: guestName,
+      session_id: sessionId,
+    });
 
-    setRecentlyAdded((prev) => new Set([...prev, track.id]));
-
-    // Remove from recently added after 10 minutes (demo: 30 seconds)
-    setTimeout(() => {
-      setRecentlyAdded((prev) => {
-        const next = new Set(prev);
-        next.delete(track.id);
-        return next;
+    if (error) {
+      console.error('Error adding to queue:', error);
+      toast({
+        title: "Failed to add",
+        description: "Could not add song to queue. Please try again.",
+        variant: "destructive",
       });
-    }, 30000);
+      return;
+    }
+
+    setLastAddTime(now);
+    setRecentlyAdded((prev) => new Set([...prev, track.id]));
 
     toast({
       title: "Added to queue! 🎉",
@@ -78,6 +210,13 @@ export default function Index() {
     });
 
     setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const formatDuration = (ms: number): string => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -103,6 +242,7 @@ export default function Index() {
             <Music2 className="w-5 h-5" />
             Search a song and add it to the party queue 🎶
           </p>
+          <p className="text-sm text-purple-400 mt-2">Hi, {guestName}!</p>
         </header>
 
         {/* Search Section */}
@@ -116,26 +256,35 @@ export default function Index() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-6 text-lg bg-white/10 border-white/20 text-white placeholder:text-purple-300 rounded-2xl focus:ring-2 focus:ring-pink-400 focus:border-transparent"
             />
+            {isSearching && (
+              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-300 animate-spin" />
+            )}
           </div>
 
           {/* Search Results */}
-          {filteredTracks.length > 0 && (
+          {searchResults.length > 0 && (
             <div className="mt-4 bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20">
-              {filteredTracks.map((track) => (
+              {searchResults.map((track) => (
                 <div
                   key={track.id}
                   className="flex items-center gap-4 p-4 hover:bg-white/10 transition-colors border-b border-white/10 last:border-0"
                 >
-                  <img
-                    src={track.cover}
-                    alt={track.album}
-                    className="w-14 h-14 rounded-lg object-cover shadow-lg"
-                  />
+                  {track.cover ? (
+                    <img
+                      src={track.cover}
+                      alt={track.album}
+                      className="w-14 h-14 rounded-lg object-cover shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg bg-purple-800 flex items-center justify-center">
+                      <Music2 className="w-6 h-6 text-purple-400" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-white truncate">{track.title}</h3>
                     <p className="text-sm text-purple-200 truncate">{track.artist}</p>
                   </div>
-                  <span className="text-sm text-purple-300 hidden sm:block">{track.duration}</span>
+                  <span className="text-sm text-purple-300 hidden sm:block">{track.durationFormatted}</span>
                   <Button
                     onClick={() => addToQueue(track)}
                     disabled={recentlyAdded.has(track.id)}
@@ -156,7 +305,7 @@ export default function Index() {
             </div>
           )}
 
-          {searchQuery.length > 0 && filteredTracks.length === 0 && (
+          {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
             <div className="mt-4 text-center py-8 text-purple-300">
               <Music2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No songs found. Try a different search!</p>
@@ -190,18 +339,26 @@ export default function Index() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center font-bold text-sm">
                     {index + 1}
                   </div>
-                  <img
-                    src={item.track.cover}
-                    alt={item.track.album}
-                    className="w-12 h-12 rounded-lg object-cover shadow-lg"
-                  />
+                  {item.track_cover_url ? (
+                    <img
+                      src={item.track_cover_url}
+                      alt={item.track_album || ''}
+                      className="w-12 h-12 rounded-lg object-cover shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-purple-800 flex items-center justify-center">
+                      <Music2 className="w-5 h-5 text-purple-400" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{item.track.title}</h3>
-                    <p className="text-sm text-purple-200 truncate">{item.track.artist}</p>
+                    <h3 className="font-semibold text-white truncate">{item.track_title}</h3>
+                    <p className="text-sm text-purple-200 truncate">{item.track_artist}</p>
                   </div>
                   <div className="text-right hidden sm:block">
-                    <p className="text-xs text-purple-300">{item.track.duration}</p>
-                    <p className="text-xs text-pink-300">Added by {item.addedBy}</p>
+                    <p className="text-xs text-purple-300">
+                      {item.track_duration_ms ? formatDuration(item.track_duration_ms) : ''}
+                    </p>
+                    <p className="text-xs text-pink-300">Added by {item.added_by}</p>
                   </div>
                 </div>
               ))}
@@ -211,7 +368,7 @@ export default function Index() {
 
         {/* Footer */}
         <footer className="mt-12 text-center text-purple-400 text-sm">
-          <p>🎵 Demo Jukebox • Songs are for display only 🎵</p>
+          <p>🎵 Powered by Spotify • No playback controls 🎵</p>
         </footer>
       </div>
     </div>
