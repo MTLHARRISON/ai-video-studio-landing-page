@@ -11,6 +11,17 @@ const corsHeaders = {
 let clientAccessToken: string | null = null;
 let clientTokenExpiry: number = 0;
 
+// In-memory storage for Spotify host tokens (shared with spotify-auth function)
+// Note: In edge functions, each function has its own isolate, so this won't be shared
+// We'll need to fetch from spotify-auth function or use a shared approach
+interface HostToken {
+  access_token: string;
+  refresh_token: string;
+  expires_at: Date;
+}
+
+const hostTokens = new Map<string, HostToken>();
+
 async function getClientAccessToken(): Promise<string> {
   const now = Date.now();
   
@@ -49,31 +60,55 @@ async function getClientAccessToken(): Promise<string> {
   return clientAccessToken!;
 }
 
-async function getHostToken(supabase: any, roomId: string): Promise<string | null> {
+async function getHostToken(roomId: string): Promise<string | null> {
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
   if (!clientId || !clientSecret) {
     console.error('Spotify credentials not configured');
     return null;
   }
 
-  const { data: host, error } = await supabase
-    .from('spotify_host')
-    .select('*')
-    .eq('room_id', roomId)
-    .maybeSingle();
+  // Try to get token from local cache first
+  let host = hostTokens.get(roomId);
 
-  if (error || !host) {
+  // If not in local cache, try to fetch from spotify-auth function
+  if (!host && supabaseUrl) {
+    try {
+      const tokenResponse = await fetch(
+        `${supabaseUrl}/functions/v1/spotify-auth?action=get-token&room_id=${roomId}`,
+        {
+          headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+        }
+      );
+      
+      if (tokenResponse.ok) {
+        const data = await tokenResponse.json();
+        if (data.token) {
+          host = {
+            access_token: data.token.access_token,
+            refresh_token: data.token.refresh_token,
+            expires_at: new Date(data.token.expires_at),
+          };
+          // Cache it locally
+          hostTokens.set(roomId, host);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching token from spotify-auth:', error);
+    }
+  }
+
+  if (!host) {
     console.log('No host found for room:', roomId);
     return null;
   }
 
-  const expiresAt = new Date(host.expires_at);
   const now = new Date();
 
   // If token is still valid (with 5 min buffer)
-  if (expiresAt.getTime() > now.getTime() + 300000) {
+  if (host.expires_at.getTime() > now.getTime() + 300000) {
     return host.access_token;
   }
 
@@ -95,19 +130,44 @@ async function getHostToken(supabase: any, roomId: string): Promise<string | nul
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Failed to refresh token:', errorText);
-    await supabase.from('spotify_host').delete().eq('id', host.id);
+    hostTokens.delete(roomId);
     return null;
   }
 
   const tokens = await response.json();
   const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-  await supabase.from('spotify_host').update({
+  // Update token in memory (both local and spotify-auth if possible)
+  const updatedToken = {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token || host.refresh_token,
-    expires_at: newExpiresAt.toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', host.id);
+    expires_at: newExpiresAt,
+  };
+  hostTokens.set(roomId, updatedToken);
+
+  // Also update in spotify-auth function if we can
+  if (supabaseUrl) {
+    try {
+      await fetch(
+        `${supabaseUrl}/functions/v1/spotify-auth?action=update-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            room_id: roomId,
+            access_token: updatedToken.access_token,
+            refresh_token: updatedToken.refresh_token,
+            expires_at: updatedToken.expires_at.toISOString(),
+          }),
+        }
+      );
+    } catch (error) {
+      console.error('Error updating token in spotify-auth:', error);
+    }
+  }
 
   console.log('Host token refreshed successfully');
   return tokens.access_token;
@@ -173,7 +233,7 @@ serve(async (req) => {
       // Check if host is connected for this room
       let hostConnected = false;
       if (roomId) {
-        const hostToken = await getHostToken(supabase, roomId);
+        const hostToken = await getHostToken(roomId);
         hostConnected = !!hostToken;
       }
 
@@ -194,7 +254,7 @@ serve(async (req) => {
         );
       }
 
-      const hostToken = await getHostToken(supabase, roomId);
+      const hostToken = await getHostToken(roomId);
       
       if (!hostToken) {
         return new Response(
@@ -271,7 +331,7 @@ serve(async (req) => {
       }
 
       // Try to add to Spotify queue
-      const hostToken = await getHostToken(supabase, roomId);
+      const hostToken = await getHostToken(roomId);
       
       if (!hostToken) {
         console.log('No host connected, song saved to database only');
@@ -329,7 +389,7 @@ serve(async (req) => {
         );
       }
 
-      const hostToken = await getHostToken(supabase, room_id);
+      const hostToken = await getHostToken(room_id);
       
       if (!hostToken) {
         return new Response(
