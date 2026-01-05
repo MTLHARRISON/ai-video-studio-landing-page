@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// In-memory storage for Spotify host tokens
+interface HostToken {
+  access_token: string;
+  refresh_token: string;
+  expires_at: Date;
+}
+
+const hostTokens = new Map<string, HostToken>();
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,8 +25,6 @@ serve(async (req) => {
 
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
   // Validate Spotify credentials
   if (!clientId || !clientSecret) {
@@ -28,8 +34,6 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     // Generate auth URL for host to login
@@ -106,27 +110,12 @@ serve(async (req) => {
       const tokens = await tokenResponse.json();
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-      // Delete existing host for this room and insert new one
-      await supabase.from('spotify_host').delete().eq('room_id', room_id);
-      
-      const { error: insertError } = await supabase.from('spotify_host').insert({
-        room_id: room_id,
+      // Store tokens in memory
+      hostTokens.set(room_id, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        expires_at: expiresAt.toISOString(),
+        expires_at: expiresAt,
       });
-
-      if (insertError) {
-        console.error('Error saving tokens:', JSON.stringify(insertError, null, 2));
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to save tokens',
-            details: insertError.message || insertError.code || JSON.stringify(insertError),
-            hint: insertError.hint || null
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
 
       console.log('Host authenticated successfully for room:', room_id);
 
@@ -145,16 +134,63 @@ serve(async (req) => {
         );
       }
 
-      const { data: host } = await supabase
-        .from('spotify_host')
-        .select('expires_at')
-        .eq('room_id', roomId)
-        .maybeSingle();
-
-      const connected = host && new Date(host.expires_at) > new Date();
+      const host = hostTokens.get(roomId);
+      const connected = host && host.expires_at > new Date();
 
       return new Response(
-        JSON.stringify({ connected }),
+        JSON.stringify({ connected: !!connected }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get token for a room (internal use by spotify function)
+    if (action === 'get-token') {
+      if (!roomId) {
+        return new Response(
+          JSON.stringify({ error: 'room_id required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const host = hostTokens.get(roomId);
+      if (!host) {
+        return new Response(
+          JSON.stringify({ token: null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          token: {
+            access_token: host.access_token,
+            refresh_token: host.refresh_token,
+            expires_at: host.expires_at.toISOString(),
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Update token (internal use by spotify function after refresh)
+    if (action === 'update-token') {
+      const { room_id, access_token, refresh_token, expires_at } = await req.json();
+      
+      if (!room_id || !access_token || !refresh_token || !expires_at) {
+        return new Response(
+          JSON.stringify({ error: 'room_id, access_token, refresh_token, and expires_at required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      hostTokens.set(room_id, {
+        access_token,
+        refresh_token,
+        expires_at: new Date(expires_at),
+      });
+
+      return new Response(
+        JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -168,7 +204,7 @@ serve(async (req) => {
         );
       }
 
-      await supabase.from('spotify_host').delete().eq('room_id', roomId);
+      hostTokens.delete(roomId);
       
       console.log('Host disconnected for room:', roomId);
 
