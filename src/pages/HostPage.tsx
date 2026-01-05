@@ -1,21 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Music2, Disc3, Wifi, WifiOff, LogOut, Loader2, CheckCircle, Trash2, QrCode, Copy, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-
-// Generate a random 6-character room code
-function generateRoomCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
 
 // Generate a random 4-digit PIN
 function generatePin(): string {
@@ -77,18 +66,21 @@ export default function HostPage() {
   const loadRoom = async (roomId: string, pin: string) => {
     setIsLoading(true);
     try {
-      const { data: roomData, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', roomId)
-        .maybeSingle();
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=get-by-id&id=${roomId}`,
+        {
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
+        }
+      );
 
-      if (error || !roomData) {
+      if (!response.ok) {
         sessionStorage.removeItem('host_room_id');
         sessionStorage.removeItem('host_room_pin');
         setIsLoading(false);
         return;
       }
+
+      const roomData = await response.json();
 
       // Verify PIN
       if (roomData.host_pin !== pin) {
@@ -134,22 +126,28 @@ export default function HostPage() {
   const createRoom = async () => {
     setIsCreatingRoom(true);
     try {
-      const code = generateRoomCode();
       const pin = generatePin();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-      const { data, error } = await supabase
-        .from('rooms')
-        .insert({
-          code,
-          name: roomName.trim() || 'Party Room',
-          host_pin: pin,
-          expires_at: expiresAt,
-        })
-        .select()
-        .single();
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=create`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: roomName.trim() || 'Party Room',
+            host_pin: pin,
+          }),
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to create room');
+      }
+
+      const data = await response.json();
 
       // Store in session
       sessionStorage.setItem('host_room_id', data.id);
@@ -181,26 +179,31 @@ export default function HostPage() {
 
     setIsLoading(true);
     try {
-      const { data: roomData, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', existingRoomCode.toUpperCase().trim())
-        .maybeSingle();
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=verify-pin`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: existingRoomCode.toUpperCase().trim(),
+            pin: pinEntry.trim(),
+          }),
+        }
+      );
 
-      if (error || !roomData) {
+      if (!response.ok) {
         toast({ title: "Room not found", variant: "destructive" });
         setIsLoading(false);
         return;
       }
 
-      if (roomData.host_pin !== pinEntry.trim()) {
-        toast({ title: "Incorrect PIN", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
+      const { valid, room: roomData } = await response.json();
 
-      if (new Date(roomData.expires_at) < new Date()) {
-        toast({ title: "Room expired", variant: "destructive" });
+      if (!valid || !roomData) {
+        toast({ title: "Incorrect PIN", variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -328,24 +331,30 @@ export default function HostPage() {
     if (!room) return;
     setIsClearing(true);
     try {
-      // Clear database queue for this room
-      const { error } = await supabase
-        .from('queue')
-        .delete()
-        .eq('room_id', room.id);
-      
-      if (error) throw error;
+      // Clear in-memory queue for this room
+      await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=clear-queue`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ room_id: room.id }),
+        }
+      );
 
       // Also clear Spotify queue if connected
       if (isConnected) {
         await fetch(
-          `${supabaseUrl}/functions/v1/spotify?action=clear-spotify-queue&room_id=${room.id}`,
+          `${supabaseUrl}/functions/v1/spotify?action=clear-spotify-queue`,
           {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${supabaseKey}`,
               'Content-Type': 'application/json',
             },
+            body: JSON.stringify({ room_id: room.id }),
           }
         );
       }

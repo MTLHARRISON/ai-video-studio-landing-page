@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -118,9 +117,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
   try {
     const url = new URL(req.url);
@@ -254,20 +251,32 @@ serve(async (req) => {
         );
       }
 
-      // Save to database queue with room_id
-      const { error: dbError } = await supabase.from('queue').insert({
-        room_id: roomId,
-        spotify_track_id: trackId,
-        track_title: trackTitle,
-        track_artist: trackArtist,
-        track_album: trackAlbum,
-        track_duration_ms: trackDuration,
-        track_cover_url: trackCover,
-        added_by: addedBy || 'Guest',
-      });
-
-      if (dbError) {
-        console.error('Error saving to queue:', dbError);
+      // Save to in-memory queue via rooms function
+      if (supabaseUrl) {
+        try {
+          await fetch(
+            `${supabaseUrl}/functions/v1/rooms?action=add-to-queue`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                room_id: roomId,
+                spotify_track_id: trackId,
+                track_title: trackTitle,
+                track_artist: trackArtist,
+                track_album: trackAlbum,
+                track_duration_ms: trackDuration,
+                track_cover_url: trackCover,
+                added_by: addedBy || 'Guest',
+              }),
+            }
+          );
+        } catch (error) {
+          console.error('Error saving to queue:', error);
+        }
       }
 
       // Try to add to Spotify queue
