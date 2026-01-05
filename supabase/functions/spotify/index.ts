@@ -53,6 +53,11 @@ async function getHostToken(supabase: any, roomId: string): Promise<string | nul
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
 
+  if (!clientId || !clientSecret) {
+    console.error('Spotify credentials not configured');
+    return null;
+  }
+
   const { data: host, error } = await supabase
     .from('spotify_host')
     .select('*')
@@ -88,7 +93,8 @@ async function getHostToken(supabase: any, roomId: string): Promise<string | nul
   });
 
   if (!response.ok) {
-    console.error('Failed to refresh token, host needs to re-authenticate');
+    const errorText = await response.text();
+    console.error('Failed to refresh token:', errorText);
     await supabase.from('spotify_host').delete().eq('id', host.id);
     return null;
   }

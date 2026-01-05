@@ -231,18 +231,24 @@ export default function HostPage() {
         }
       );
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to get auth URL`);
+      }
+
       const data = await response.json();
       
       if (data.authUrl) {
         window.location.href = data.authUrl;
       } else {
-        throw new Error('Failed to get auth URL');
+        throw new Error(data.error || 'Failed to get auth URL');
       }
     } catch (error) {
       console.error('Error connecting:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Could not connect to Spotify. Please try again.';
       toast({
         title: "Connection failed",
-        description: "Could not connect to Spotify. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsConnecting(false);
@@ -266,6 +272,11 @@ export default function HostPage() {
         }
       );
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.details || `HTTP ${response.status}: Failed to exchange code`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -285,9 +296,10 @@ export default function HostPage() {
       }
     } catch (error) {
       console.error('Error exchanging code:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Could not complete Spotify authentication.';
       toast({
         title: "Connection failed",
-        description: "Could not complete Spotify authentication.",
+        description: errorMessage,
         variant: "destructive",
       });
       navigate('/host', { replace: true });

@@ -20,6 +20,15 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+  // Validate Spotify credentials
+  if (!clientId || !clientSecret) {
+    console.error('Spotify credentials not configured');
+    return new Response(
+      JSON.stringify({ error: 'Spotify credentials not configured. Please set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET environment variables.' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
@@ -79,11 +88,18 @@ serve(async (req) => {
       });
 
       if (!tokenResponse.ok) {
-        const error = await tokenResponse.text();
-        console.error('Token exchange error:', error);
+        const errorText = await tokenResponse.text();
+        console.error('Token exchange error:', errorText);
+        let errorMessage = 'Failed to exchange code for tokens';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error_description || errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
         return new Response(
-          JSON.stringify({ error: 'Failed to exchange code' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: errorMessage, details: errorText }),
+          { status: tokenResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
