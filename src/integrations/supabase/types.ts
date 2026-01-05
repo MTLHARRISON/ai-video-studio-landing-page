@@ -19,6 +19,7 @@ export type Database = {
           added_by: string
           created_at: string
           id: string
+          room_id: string | null
           session_id: string | null
           spotify_track_id: string
           track_album: string | null
@@ -31,6 +32,7 @@ export type Database = {
           added_by?: string
           created_at?: string
           id?: string
+          room_id?: string | null
           session_id?: string | null
           spotify_track_id: string
           track_album?: string | null
@@ -43,6 +45,7 @@ export type Database = {
           added_by?: string
           created_at?: string
           id?: string
+          room_id?: string | null
           session_id?: string | null
           spotify_track_id?: string
           track_album?: string | null
@@ -50,6 +53,41 @@ export type Database = {
           track_cover_url?: string | null
           track_duration_ms?: number | null
           track_title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          host_pin: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          host_pin: string
+          id?: string
+          name?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          host_pin?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -60,6 +98,7 @@ export type Database = {
           expires_at: string
           id: string
           refresh_token: string
+          room_id: string | null
           updated_at: string
         }
         Insert: {
@@ -68,6 +107,7 @@ export type Database = {
           expires_at: string
           id?: string
           refresh_token: string
+          room_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -76,9 +116,18 @@ export type Database = {
           expires_at?: string
           id?: string
           refresh_token?: string
+          room_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spotify_host_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
