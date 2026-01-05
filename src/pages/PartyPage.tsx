@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Settings } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Volume2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -27,11 +27,29 @@ interface QueueItem {
   track_cover_url: string | null;
   added_by: string;
   created_at: string;
+  room_id: string | null;
+}
+
+interface NowPlaying {
+  track_id: string;
+  title: string;
+  artist: string;
+  album: string;
+  cover: string | null;
+  progress_ms: number;
+  duration_ms: number;
+  is_playing: boolean;
+}
+
+interface Room {
+  id: string;
+  code: string;
+  name: string;
+  expires_at: string;
 }
 
 const guestNames = ["Party Guest", "Music Lover", "Dance Floor", "DJ Wannabe", "Vibe Curator", "Song Hunter"];
 
-// Get or create a session ID for rate limiting
 function getSessionId(): string {
   let sessionId = localStorage.getItem('jukebox_session_id');
   if (!sessionId) {
@@ -41,7 +59,6 @@ function getSessionId(): string {
   return sessionId;
 }
 
-// Get or create a guest name
 function getGuestName(): string {
   let guestName = localStorage.getItem('jukebox_guest_name');
   if (!guestName) {
@@ -51,7 +68,12 @@ function getGuestName(): string {
   return guestName;
 }
 
-export default function Index() {
+export default function PartyPage() {
+  const { roomCode } = useParams<{ roomCode: string }>();
+  const navigate = useNavigate();
+  
+  const [room, setRoom] = useState<Room | null>(null);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -60,6 +82,7 @@ export default function Index() {
   const [lastAddTime, setLastAddTime] = useState<number>(0);
   const [hostConnected, setHostConnected] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
 
   const sessionId = getSessionId();
   const guestName = getGuestName();
@@ -67,9 +90,22 @@ export default function Index() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  // Load queue on mount and subscribe to realtime updates
+  // Load room on mount
   useEffect(() => {
+    if (roomCode) {
+      loadRoom();
+    }
+  }, [roomCode]);
+
+  // Load queue and subscribe to updates when room is loaded
+  useEffect(() => {
+    if (!room) return;
+
     loadQueue();
+    fetchNowPlaying();
+
+    // Poll for now playing every 5 seconds
+    const nowPlayingInterval = setInterval(fetchNowPlaying, 5000);
 
     const channel = supabase
       .channel('queue-changes')
@@ -79,6 +115,7 @@ export default function Index() {
           event: '*',
           schema: 'public',
           table: 'queue',
+          filter: `room_id=eq.${room.id}`,
         },
         () => {
           loadQueue();
@@ -88,13 +125,58 @@ export default function Index() {
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(nowPlayingInterval);
     };
-  }, []);
+  }, [room]);
+
+  const loadRoom = async () => {
+    setIsLoadingRoom(true);
+    try {
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', roomCode?.toUpperCase())
+        .maybeSingle();
+
+      if (error || !roomData) {
+        toast({
+          title: "Room not found",
+          description: "This party room doesn't exist.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
+
+      if (new Date(roomData.expires_at) < new Date()) {
+        toast({
+          title: "Room expired",
+          description: "This party room has expired.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
+
+      setRoom(roomData);
+      sessionStorage.setItem('current_room_id', roomData.id);
+      sessionStorage.setItem('current_room_code', roomData.code);
+      sessionStorage.setItem('current_room_name', roomData.name);
+    } catch (error) {
+      console.error('Error loading room:', error);
+      navigate('/');
+    } finally {
+      setIsLoadingRoom(false);
+    }
+  };
 
   const loadQueue = async () => {
+    if (!room) return;
+    
     const { data, error } = await supabase
       .from('queue')
       .select('*')
+      .eq('room_id', room.id)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -105,9 +187,35 @@ export default function Index() {
     setQueue(data || []);
   };
 
+  const fetchNowPlaying = async () => {
+    if (!room) return;
+
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/spotify?action=now-playing&room_id=${room.id}`,
+        {
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
+        }
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setHostConnected(data.hostConnected || false);
+      
+      if (data.nowPlaying) {
+        setNowPlaying(data.nowPlaying);
+      } else {
+        setNowPlaying(null);
+      }
+    } catch (error) {
+      console.error('Error fetching now playing:', error);
+    }
+  };
+
   // Debounced search
   useEffect(() => {
-    if (searchQuery.length < 2) {
+    if (searchQuery.length < 2 || !room) {
       setSearchResults([]);
       return;
     }
@@ -117,23 +225,20 @@ export default function Index() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, room]);
 
   const searchSpotify = async (query: string) => {
+    if (!room) return;
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}`,
+        `${supabaseUrl}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}&room_id=${room.id}`,
         {
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
         }
       );
 
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
+      if (!response.ok) throw new Error('Search failed');
 
       const result = await response.json();
       setSearchResults(result.tracks || []);
@@ -151,10 +256,11 @@ export default function Index() {
   };
 
   const addToQueue = async (track: SpotifyTrack) => {
-    // Rate limit: 1 song every 2 minutes per session
+    if (!room) return;
+
     const now = Date.now();
     const timeSinceLastAdd = now - lastAddTime;
-    const cooldownMs = 120000; // 2 minutes
+    const cooldownMs = 120000;
 
     if (timeSinceLastAdd < cooldownMs) {
       const remainingSeconds = Math.ceil((cooldownMs - timeSinceLastAdd) / 1000);
@@ -166,7 +272,6 @@ export default function Index() {
       return;
     }
 
-    // Check for duplicate in last 10 minutes
     const tenMinutesAgo = new Date(now - 600000).toISOString();
     const recentDuplicate = queue.find(
       (item) => item.spotify_track_id === track.id && item.created_at > tenMinutesAgo
@@ -184,7 +289,6 @@ export default function Index() {
     setIsAdding(track.id);
 
     try {
-      // Use edge function to add to queue (handles both DB and Spotify)
       const response = await fetch(
         `${supabaseUrl}/functions/v1/spotify?action=add-to-queue`,
         {
@@ -194,6 +298,7 @@ export default function Index() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            roomId: room.id,
             trackUri: track.uri,
             trackId: track.id,
             trackTitle: track.title,
@@ -208,9 +313,7 @@ export default function Index() {
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to add');
-      }
+      if (!response.ok) throw new Error(result.error || 'Failed to add');
 
       setLastAddTime(now);
       setRecentlyAdded((prev) => new Set([...prev, track.id]));
@@ -240,9 +343,19 @@ export default function Index() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  if (isLoadingRoom) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-fuchsia-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 mx-auto text-purple-400 animate-spin" />
+          <p className="mt-4 text-purple-300">Joining party...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-fuchsia-900 text-white">
-      {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
@@ -258,29 +371,71 @@ export default function Index() {
               <span>Connected to host's Spotify</span>
             </div>
           ) : (
-            <Link to="/host" className="flex items-center justify-center gap-2 text-amber-400 text-sm bg-amber-500/10 rounded-full py-2 px-4 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
+            <div className="flex items-center justify-center gap-2 text-amber-400 text-sm bg-amber-500/10 rounded-full py-2 px-4 border border-amber-500/30">
               <WifiOff className="w-4 h-4" />
-              <span>Host not connected</span>
-              <Settings className="w-4 h-4" />
-            </Link>
+              <span>Waiting for host to connect Spotify</span>
+            </div>
           )}
         </div>
 
         {/* Header */}
-        <header className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Disc3 className="w-12 h-12 text-pink-400 animate-spin" style={{ animationDuration: "3s" }} />
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              Party Jukebox
+        <header className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Disc3 className="w-10 h-10 text-pink-400 animate-spin" style={{ animationDuration: "3s" }} />
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              {room?.name || 'Party Jukebox'}
             </h1>
-            <Disc3 className="w-12 h-12 text-cyan-400 animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
+            <Disc3 className="w-10 h-10 text-cyan-400 animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
           </div>
           <p className="text-lg text-purple-200 flex items-center justify-center gap-2">
             <Music2 className="w-5 h-5" />
-            Search a song and add it to the party queue 🎶
+            Room: {room?.code}
           </p>
-          <p className="text-sm text-purple-400 mt-2">Hi, {guestName}!</p>
+          <p className="text-sm text-purple-400 mt-1">Hi, {guestName}!</p>
         </header>
+
+        {/* Now Playing */}
+        {nowPlaying && (
+          <div className="mb-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md rounded-2xl p-4 border border-green-500/30">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                {nowPlaying.cover ? (
+                  <img
+                    src={nowPlaying.cover}
+                    alt={nowPlaying.album}
+                    className="w-16 h-16 rounded-lg object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-green-800 flex items-center justify-center">
+                    <Music2 className="w-8 h-8 text-green-400" />
+                  </div>
+                )}
+                {nowPlaying.is_playing && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <Volume2 className="w-2.5 h-2.5 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-green-400 font-semibold uppercase tracking-wider mb-1">
+                  {nowPlaying.is_playing ? '♪ Now Playing' : '⏸ Paused'}
+                </p>
+                <h3 className="font-bold text-white truncate">{nowPlaying.title}</h3>
+                <p className="text-sm text-green-200 truncate">{nowPlaying.artist}</p>
+              </div>
+              <div className="text-right text-sm text-green-300">
+                {formatDuration(nowPlaying.progress_ms)} / {formatDuration(nowPlaying.duration_ms)}
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div className="mt-3 h-1 bg-green-900/50 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-400 rounded-full transition-all duration-1000"
+                style={{ width: `${(nowPlaying.progress_ms / nowPlaying.duration_ms) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Search Section */}
         <div className="mb-8">
@@ -370,37 +525,59 @@ export default function Index() {
             </div>
           ) : (
             <div className="space-y-3">
-              {queue.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 transition-all hover:bg-white/15"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center font-bold text-sm">
-                    {index + 1}
-                  </div>
-                  {item.track_cover_url ? (
-                    <img
-                      src={item.track_cover_url}
-                      alt={item.track_album || ''}
-                      className="w-12 h-12 rounded-lg object-cover shadow-lg"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-purple-800 flex items-center justify-center">
-                      <Music2 className="w-5 h-5 text-purple-400" />
+              {queue.map((item, index) => {
+                const isCurrentlyPlaying = nowPlaying?.track_id === item.spotify_track_id;
+                
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-4 p-4 backdrop-blur-sm rounded-2xl border transition-all ${
+                      isCurrentlyPlaying
+                        ? 'bg-green-500/20 border-green-500/50 ring-2 ring-green-500/30'
+                        : 'bg-white/10 border-white/20 hover:bg-white/15'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      isCurrentlyPlaying
+                        ? 'bg-gradient-to-br from-green-400 to-emerald-500'
+                        : 'bg-gradient-to-br from-pink-500 to-purple-500'
+                    }`}>
+                      {isCurrentlyPlaying ? (
+                        <Volume2 className="w-4 h-4" />
+                      ) : (
+                        index + 1
+                      )}
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{item.track_title}</h3>
-                    <p className="text-sm text-purple-200 truncate">{item.track_artist}</p>
+                    {item.track_cover_url ? (
+                      <img
+                        src={item.track_cover_url}
+                        alt={item.track_album || ''}
+                        className={`w-12 h-12 rounded-lg object-cover shadow-lg ${isCurrentlyPlaying ? 'ring-2 ring-green-400' : ''}`}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-purple-800 flex items-center justify-center">
+                        <Music2 className="w-5 h-5 text-purple-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold truncate ${isCurrentlyPlaying ? 'text-green-300' : 'text-white'}`}>
+                        {item.track_title}
+                      </h3>
+                      <p className={`text-sm truncate ${isCurrentlyPlaying ? 'text-green-200' : 'text-purple-200'}`}>
+                        {item.track_artist}
+                      </p>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                      <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-purple-300'}`}>
+                        {item.track_duration_ms ? formatDuration(item.track_duration_ms) : ''}
+                      </p>
+                      <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-pink-300'}`}>
+                        Added by {item.added_by}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs text-purple-300">
-                      {item.track_duration_ms ? formatDuration(item.track_duration_ms) : ''}
-                    </p>
-                    <p className="text-xs text-pink-300">Added by {item.added_by}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -408,6 +585,12 @@ export default function Index() {
         {/* Footer */}
         <footer className="mt-12 text-center text-purple-400 text-sm">
           <p>🎵 Powered by Spotify • No playback controls 🎵</p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-2 text-purple-300 hover:text-white transition-colors"
+          >
+            ← Leave Party
+          </button>
         </footer>
       </div>
     </div>

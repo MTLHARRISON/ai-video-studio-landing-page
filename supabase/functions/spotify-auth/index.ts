@@ -13,6 +13,7 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const action = url.searchParams.get('action');
+  const roomId = url.searchParams.get('room_id');
 
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
@@ -25,15 +26,16 @@ serve(async (req) => {
     // Generate auth URL for host to login
     if (action === 'get-auth-url') {
       const redirectUri = url.searchParams.get('redirect_uri');
-      if (!redirectUri) {
+      if (!redirectUri || !roomId) {
         return new Response(
-          JSON.stringify({ error: 'redirect_uri required' }),
+          JSON.stringify({ error: 'redirect_uri and room_id required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const scopes = 'user-modify-playback-state user-read-playback-state';
-      const state = crypto.randomUUID();
+      const scopes = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
+      // Use room_id as state to pass back after auth
+      const state = roomId;
       
       const authUrl = `https://accounts.spotify.com/authorize?` +
         `client_id=${clientId}` +
@@ -42,7 +44,7 @@ serve(async (req) => {
         `&scope=${encodeURIComponent(scopes)}` +
         `&state=${state}`;
 
-      console.log('Generated auth URL for host login');
+      console.log('Generated auth URL for host login, room:', roomId);
 
       return new Response(
         JSON.stringify({ authUrl, state }),
@@ -52,16 +54,16 @@ serve(async (req) => {
 
     // Exchange code for tokens
     if (action === 'exchange-code') {
-      const { code, redirect_uri } = await req.json();
+      const { code, redirect_uri, room_id } = await req.json();
       
-      if (!code || !redirect_uri) {
+      if (!code || !redirect_uri || !room_id) {
         return new Response(
-          JSON.stringify({ error: 'code and redirect_uri required' }),
+          JSON.stringify({ error: 'code, redirect_uri, and room_id required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log('Exchanging code for tokens...');
+      console.log('Exchanging code for tokens, room:', room_id);
 
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -88,10 +90,11 @@ serve(async (req) => {
       const tokens = await tokenResponse.json();
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-      // Delete existing host and insert new one
-      await supabase.from('spotify_host').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete existing host for this room and insert new one
+      await supabase.from('spotify_host').delete().eq('room_id', room_id);
       
       const { error: insertError } = await supabase.from('spotify_host').insert({
+        room_id: room_id,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_at: expiresAt.toISOString(),
@@ -105,7 +108,7 @@ serve(async (req) => {
         );
       }
 
-      console.log('Host authenticated successfully!');
+      console.log('Host authenticated successfully for room:', room_id);
 
       return new Response(
         JSON.stringify({ success: true }),
@@ -113,12 +116,19 @@ serve(async (req) => {
       );
     }
 
-    // Check if host is connected
+    // Check if host is connected for a specific room
     if (action === 'check-status') {
+      if (!roomId) {
+        return new Response(
+          JSON.stringify({ connected: false }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: host } = await supabase
         .from('spotify_host')
         .select('expires_at')
-        .limit(1)
+        .eq('room_id', roomId)
         .maybeSingle();
 
       const connected = host && new Date(host.expires_at) > new Date();
@@ -129,11 +139,18 @@ serve(async (req) => {
       );
     }
 
-    // Disconnect host
+    // Disconnect host for a specific room
     if (action === 'disconnect') {
-      await supabase.from('spotify_host').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (!roomId) {
+        return new Response(
+          JSON.stringify({ error: 'room_id required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      await supabase.from('spotify_host').delete().eq('room_id', roomId);
       
-      console.log('Host disconnected');
+      console.log('Host disconnected for room:', roomId);
 
       return new Response(
         JSON.stringify({ success: true }),

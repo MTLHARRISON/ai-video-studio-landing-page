@@ -49,18 +49,18 @@ async function getClientAccessToken(): Promise<string> {
   return clientAccessToken!;
 }
 
-async function getHostToken(supabase: any): Promise<string | null> {
+async function getHostToken(supabase: any, roomId: string): Promise<string | null> {
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
 
   const { data: host, error } = await supabase
     .from('spotify_host')
     .select('*')
-    .limit(1)
+    .eq('room_id', roomId)
     .maybeSingle();
 
   if (error || !host) {
-    console.log('No host found');
+    console.log('No host found for room:', roomId);
     return null;
   }
 
@@ -73,7 +73,7 @@ async function getHostToken(supabase: any): Promise<string | null> {
   }
 
   // Refresh the token
-  console.log('Refreshing host token...');
+  console.log('Refreshing host token for room:', roomId);
 
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -89,7 +89,6 @@ async function getHostToken(supabase: any): Promise<string | null> {
 
   if (!response.ok) {
     console.error('Failed to refresh token, host needs to re-authenticate');
-    // Delete the expired host
     await supabase.from('spotify_host').delete().eq('id', host.id);
     return null;
   }
@@ -97,7 +96,6 @@ async function getHostToken(supabase: any): Promise<string | null> {
   const tokens = await response.json();
   const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-  // Update tokens in database
   await supabase.from('spotify_host').update({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token || host.refresh_token,
@@ -121,6 +119,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
+    const roomId = url.searchParams.get('room_id');
 
     // Search tracks
     if (action === 'search') {
@@ -165,30 +164,93 @@ serve(async (req) => {
         cover: track.album.images[0]?.url || null,
       }));
 
-      // Check if host is connected
-      const hostToken = await getHostToken(supabase);
+      // Check if host is connected for this room
+      let hostConnected = false;
+      if (roomId) {
+        const hostToken = await getHostToken(supabase, roomId);
+        hostConnected = !!hostToken;
+      }
 
-      console.log(`Found ${tracks.length} tracks, host connected: ${!!hostToken}`);
+      console.log(`Found ${tracks.length} tracks, host connected: ${hostConnected}`);
 
       return new Response(
-        JSON.stringify({ tracks, hostConnected: !!hostToken }),
+        JSON.stringify({ tracks, hostConnected }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get now playing for a room
+    if (action === 'now-playing') {
+      if (!roomId) {
+        return new Response(
+          JSON.stringify({ error: 'room_id required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const hostToken = await getHostToken(supabase, roomId);
+      
+      if (!hostToken) {
+        return new Response(
+          JSON.stringify({ hostConnected: false, nowPlaying: null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const playerResponse = await fetch(
+        'https://api.spotify.com/v1/me/player/currently-playing',
+        {
+          headers: { 'Authorization': `Bearer ${hostToken}` },
+        }
+      );
+
+      if (playerResponse.status === 204 || !playerResponse.ok) {
+        return new Response(
+          JSON.stringify({ hostConnected: true, nowPlaying: null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const playerData = await playerResponse.json();
+      
+      if (!playerData.item) {
+        return new Response(
+          JSON.stringify({ hostConnected: true, nowPlaying: null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const nowPlaying = {
+        track_id: playerData.item.id,
+        title: playerData.item.name,
+        artist: playerData.item.artists.map((a: any) => a.name).join(', '),
+        album: playerData.item.album.name,
+        cover: playerData.item.album.images[0]?.url || null,
+        progress_ms: playerData.progress_ms,
+        duration_ms: playerData.item.duration_ms,
+        is_playing: playerData.is_playing,
+      };
+
+      return new Response(
+        JSON.stringify({ hostConnected: true, nowPlaying }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Add to queue
     if (action === 'add-to-queue') {
-      const { trackUri, trackId, trackTitle, trackArtist, trackAlbum, trackDuration, trackCover, addedBy } = await req.json();
+      const { roomId, trackUri, trackId, trackTitle, trackArtist, trackAlbum, trackDuration, trackCover, addedBy } = await req.json();
 
-      if (!trackUri || !trackId) {
+      if (!roomId || !trackUri || !trackId) {
         return new Response(
-          JSON.stringify({ error: 'Track info required' }),
+          JSON.stringify({ error: 'roomId and track info required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Save to database queue
+      // Save to database queue with room_id
       const { error: dbError } = await supabase.from('queue').insert({
+        room_id: roomId,
         spotify_track_id: trackId,
         track_title: trackTitle,
         track_artist: trackArtist,
@@ -203,7 +265,7 @@ serve(async (req) => {
       }
 
       // Try to add to Spotify queue
-      const hostToken = await getHostToken(supabase);
+      const hostToken = await getHostToken(supabase, roomId);
       
       if (!hostToken) {
         console.log('No host connected, song saved to database only');
@@ -229,7 +291,6 @@ serve(async (req) => {
         const error = await queueResponse.text();
         console.error('Spotify queue error:', error);
         
-        // Check for specific errors
         if (queueResponse.status === 404) {
           return new Response(
             JSON.stringify({ success: true, addedToSpotify: false, message: 'Added to queue (no active Spotify device)' }),
@@ -247,6 +308,37 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, addedToSpotify: true, message: 'Added to Spotify queue!' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Clear Spotify queue (skip to next repeatedly or use pause/skip workaround)
+    if (action === 'clear-spotify-queue') {
+      const { room_id } = await req.json();
+
+      if (!room_id) {
+        return new Response(
+          JSON.stringify({ error: 'room_id required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const hostToken = await getHostToken(supabase, room_id);
+      
+      if (!hostToken) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'Host not connected' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Spotify doesn't have a direct "clear queue" endpoint
+      // The best we can do is skip through queued songs or inform the user
+      // For now, we'll just acknowledge - the host can manually clear in Spotify
+      console.log('Clear Spotify queue requested for room:', room_id);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Database queue cleared. Clear Spotify queue manually if needed.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
