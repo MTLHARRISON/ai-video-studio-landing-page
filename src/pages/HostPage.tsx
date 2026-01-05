@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Music2, Disc3, Wifi, WifiOff, LogOut, Loader2, CheckCircle } from "lucide-react";
+import { Music2, Disc3, Wifi, WifiOff, LogOut, Loader2, CheckCircle, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -10,6 +11,7 @@ export default function HostPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -141,6 +143,27 @@ export default function HostPage() {
     }
   };
 
+  const handleClearQueue = async () => {
+    setIsClearing(true);
+    try {
+      const { error } = await supabase.from('queue').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      toast({
+        title: "Queue cleared",
+        description: "All songs have been removed from the queue.",
+      });
+    } catch (error) {
+      console.error('Error clearing queue:', error);
+      toast({
+        title: "Failed to clear queue",
+        description: "Could not clear the queue. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-fuchsia-900 text-white">
       {/* Animated background */}
@@ -195,6 +218,19 @@ export default function HostPage() {
                 >
                   <Music2 className="w-5 h-5 mr-2" />
                   Go to Jukebox
+                </Button>
+                <Button
+                  onClick={handleClearQueue}
+                  disabled={isClearing}
+                  variant="outline"
+                  className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10 py-6 rounded-xl"
+                >
+                  {isClearing ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5 mr-2" />
+                  )}
+                  Clear Queue
                 </Button>
                 <Button
                   onClick={handleDisconnect}
