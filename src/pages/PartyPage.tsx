@@ -4,6 +4,7 @@ import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Volu
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SpotifyTrack {
   id: string;
@@ -96,20 +97,34 @@ export default function PartyPage() {
     }
   }, [roomCode]);
 
-  // Load queue and poll for updates when room is loaded
+  // Load queue and subscribe to updates when room is loaded
   useEffect(() => {
     if (!room) return;
 
     loadQueue();
     fetchNowPlaying();
 
-    // Poll for queue updates every 2 seconds
-    const queueInterval = setInterval(loadQueue, 2000);
     // Poll for now playing every 5 seconds
     const nowPlayingInterval = setInterval(fetchNowPlaying, 5000);
 
+    const channel = supabase
+      .channel('queue-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'queue',
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          loadQueue();
+        }
+      )
+      .subscribe();
+
     return () => {
-      clearInterval(queueInterval);
+      supabase.removeChannel(channel);
       clearInterval(nowPlayingInterval);
     };
   }, [room]);
@@ -117,14 +132,13 @@ export default function PartyPage() {
   const loadRoom = async () => {
     setIsLoadingRoom(true);
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=get-by-code&code=${roomCode?.toUpperCase()}`,
-        {
-          headers: { 'Authorization': `Bearer ${supabaseKey}` },
-        }
-      );
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', roomCode?.toUpperCase())
+        .maybeSingle();
 
-      if (!response.ok) {
+      if (error || !roomData) {
         toast({
           title: "Room not found",
           description: "This party room doesn't exist.",
@@ -133,8 +147,6 @@ export default function PartyPage() {
         navigate('/');
         return;
       }
-
-      const roomData = await response.json();
 
       if (new Date(roomData.expires_at) < new Date()) {
         toast({
@@ -161,24 +173,18 @@ export default function PartyPage() {
   const loadQueue = async () => {
     if (!room) return;
     
-    try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=get-queue&room_id=${room.id}`,
-        {
-          headers: { 'Authorization': `Bearer ${supabaseKey}` },
-        }
-      );
+    const { data, error } = await supabase
+      .from('queue')
+      .select('*')
+      .eq('room_id', room.id)
+      .order('created_at', { ascending: true });
 
-      if (!response.ok) {
-        console.error('Error loading queue');
-        return;
-      }
-
-      const data = await response.json();
-      setQueue(data || []);
-    } catch (error) {
+    if (error) {
       console.error('Error loading queue:', error);
+      return;
     }
+
+    setQueue(data || []);
   };
 
   const fetchNowPlaying = async () => {

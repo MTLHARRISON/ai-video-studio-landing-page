@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,17 +10,6 @@ const corsHeaders = {
 // Token cache for client credentials (search only)
 let clientAccessToken: string | null = null;
 let clientTokenExpiry: number = 0;
-
-// In-memory storage for Spotify host tokens (shared with spotify-auth function)
-// Note: In edge functions, each function has its own isolate, so this won't be shared
-// We'll need to fetch from spotify-auth function or use a shared approach
-interface HostToken {
-  access_token: string;
-  refresh_token: string;
-  expires_at: Date;
-}
-
-const hostTokens = new Map<string, HostToken>();
 
 async function getClientAccessToken(): Promise<string> {
   const now = Date.now();
@@ -59,55 +49,26 @@ async function getClientAccessToken(): Promise<string> {
   return clientAccessToken!;
 }
 
-async function getHostToken(roomId: string): Promise<string | null> {
+async function getHostToken(supabase: any, roomId: string): Promise<string | null> {
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
-  if (!clientId || !clientSecret) {
-    console.error('Spotify credentials not configured');
-    return null;
-  }
+  const { data: host, error } = await supabase
+    .from('spotify_host')
+    .select('*')
+    .eq('room_id', roomId)
+    .maybeSingle();
 
-  // Try to get token from local cache first
-  let host = hostTokens.get(roomId);
-
-  // If not in local cache, try to fetch from spotify-auth function
-  if (!host && supabaseUrl) {
-    try {
-      const tokenResponse = await fetch(
-        `${supabaseUrl}/functions/v1/spotify-auth?action=get-token&room_id=${roomId}`,
-        {
-          headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
-        }
-      );
-      
-      if (tokenResponse.ok) {
-        const data = await tokenResponse.json();
-        if (data.token) {
-          host = {
-            access_token: data.token.access_token,
-            refresh_token: data.token.refresh_token,
-            expires_at: new Date(data.token.expires_at),
-          };
-          // Cache it locally
-          hostTokens.set(roomId, host);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching token from spotify-auth:', error);
-    }
-  }
-
-  if (!host) {
+  if (error || !host) {
     console.log('No host found for room:', roomId);
     return null;
   }
 
+  const expiresAt = new Date(host.expires_at);
   const now = new Date();
 
   // If token is still valid (with 5 min buffer)
-  if (host.expires_at.getTime() > now.getTime() + 300000) {
+  if (expiresAt.getTime() > now.getTime() + 300000) {
     return host.access_token;
   }
 
@@ -127,46 +88,20 @@ async function getHostToken(roomId: string): Promise<string | null> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to refresh token:', errorText);
-    hostTokens.delete(roomId);
+    console.error('Failed to refresh token, host needs to re-authenticate');
+    await supabase.from('spotify_host').delete().eq('id', host.id);
     return null;
   }
 
   const tokens = await response.json();
   const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-  // Update token in memory (both local and spotify-auth if possible)
-  const updatedToken = {
+  await supabase.from('spotify_host').update({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token || host.refresh_token,
-    expires_at: newExpiresAt,
-  };
-  hostTokens.set(roomId, updatedToken);
-
-  // Also update in spotify-auth function if we can
-  if (supabaseUrl) {
-    try {
-      await fetch(
-        `${supabaseUrl}/functions/v1/spotify-auth?action=update-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            room_id: roomId,
-            access_token: updatedToken.access_token,
-            refresh_token: updatedToken.refresh_token,
-            expires_at: updatedToken.expires_at.toISOString(),
-          }),
-        }
-      );
-    } catch (error) {
-      console.error('Error updating token in spotify-auth:', error);
-    }
-  }
+    expires_at: newExpiresAt.toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', host.id);
 
   console.log('Host token refreshed successfully');
   return tokens.access_token;
@@ -177,7 +112,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const url = new URL(req.url);
@@ -230,7 +167,7 @@ serve(async (req) => {
       // Check if host is connected for this room
       let hostConnected = false;
       if (roomId) {
-        const hostToken = await getHostToken(roomId);
+        const hostToken = await getHostToken(supabase, roomId);
         hostConnected = !!hostToken;
       }
 
@@ -251,7 +188,7 @@ serve(async (req) => {
         );
       }
 
-      const hostToken = await getHostToken(roomId);
+      const hostToken = await getHostToken(supabase, roomId);
       
       if (!hostToken) {
         return new Response(
@@ -311,36 +248,24 @@ serve(async (req) => {
         );
       }
 
-      // Save to in-memory queue via rooms function
-      if (supabaseUrl) {
-        try {
-          await fetch(
-            `${supabaseUrl}/functions/v1/rooms?action=add-to-queue`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                room_id: roomId,
-                spotify_track_id: trackId,
-                track_title: trackTitle,
-                track_artist: trackArtist,
-                track_album: trackAlbum,
-                track_duration_ms: trackDuration,
-                track_cover_url: trackCover,
-                added_by: addedBy || 'Guest',
-              }),
-            }
-          );
-        } catch (error) {
-          console.error('Error saving to queue:', error);
-        }
+      // Save to database queue with room_id
+      const { error: dbError } = await supabase.from('queue').insert({
+        room_id: roomId,
+        spotify_track_id: trackId,
+        track_title: trackTitle,
+        track_artist: trackArtist,
+        track_album: trackAlbum,
+        track_duration_ms: trackDuration,
+        track_cover_url: trackCover,
+        added_by: addedBy || 'Guest',
+      });
+
+      if (dbError) {
+        console.error('Error saving to queue:', dbError);
       }
 
       // Try to add to Spotify queue
-      const hostToken = await getHostToken(roomId);
+      const hostToken = await getHostToken(supabase, roomId);
       
       if (!hostToken) {
         console.log('No host connected, song saved to database only');
@@ -398,7 +323,7 @@ serve(async (req) => {
         );
       }
 
-      const hostToken = await getHostToken(room_id);
+      const hostToken = await getHostToken(supabase, room_id);
       
       if (!hostToken) {
         return new Response(
