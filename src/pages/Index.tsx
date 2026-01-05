@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { Search, Music2, Plus, Check, Clock, Disc3, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -7,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface SpotifyTrack {
   id: string;
+  uri: string;
   title: string;
   artist: string;
   album: string;
@@ -56,9 +58,14 @@ export default function Index() {
   const [isSearching, setIsSearching] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<Set<string>>(new Set());
   const [lastAddTime, setLastAddTime] = useState<number>(0);
+  const [hostConnected, setHostConnected] = useState(false);
+  const [isAdding, setIsAdding] = useState<string | null>(null);
 
   const sessionId = getSessionId();
   const guestName = getGuestName();
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   // Load queue on mount and subscribe to realtime updates
   useEffect(() => {
@@ -116,10 +123,10 @@ export default function Index() {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}`,
+        `${supabaseUrl}/functions/v1/spotify?action=search&q=${encodeURIComponent(query)}`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Authorization': `Bearer ${supabaseKey}`,
           },
         }
       );
@@ -130,6 +137,7 @@ export default function Index() {
 
       const result = await response.json();
       setSearchResults(result.tracks || []);
+      setHostConnected(result.hostConnected || false);
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -173,38 +181,57 @@ export default function Index() {
       return;
     }
 
-    // Add to database
-    const { error } = await supabase.from('queue').insert({
-      spotify_track_id: track.id,
-      track_title: track.title,
-      track_artist: track.artist,
-      track_album: track.album,
-      track_duration_ms: track.duration,
-      track_cover_url: track.cover,
-      added_by: guestName,
-      session_id: sessionId,
-    });
+    setIsAdding(track.id);
 
-    if (error) {
+    try {
+      // Use edge function to add to queue (handles both DB and Spotify)
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/spotify?action=add-to-queue`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            trackUri: track.uri,
+            trackId: track.id,
+            trackTitle: track.title,
+            trackArtist: track.artist,
+            trackAlbum: track.album,
+            trackDuration: track.duration,
+            trackCover: track.cover,
+            addedBy: guestName,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add');
+      }
+
+      setLastAddTime(now);
+      setRecentlyAdded((prev) => new Set([...prev, track.id]));
+
+      toast({
+        title: result.addedToSpotify ? "Playing soon! 🎉" : "Added to queue! 🎉",
+        description: result.message || `"${track.title}" is now in the party queue!`,
+      });
+
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (error) {
       console.error('Error adding to queue:', error);
       toast({
         title: "Failed to add",
         description: "Could not add song to queue. Please try again.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsAdding(null);
     }
-
-    setLastAddTime(now);
-    setRecentlyAdded((prev) => new Set([...prev, track.id]));
-
-    toast({
-      title: "Added to queue! 🎉",
-      description: `"${track.title}" is now in the party queue!`,
-    });
-
-    setSearchQuery("");
-    setSearchResults([]);
   };
 
   const formatDuration = (ms: number): string => {
@@ -223,6 +250,22 @@ export default function Index() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-2xl">
+        {/* Host status banner */}
+        <div className="mb-4">
+          {hostConnected ? (
+            <div className="flex items-center justify-center gap-2 text-green-400 text-sm bg-green-500/10 rounded-full py-2 px-4 border border-green-500/30">
+              <Wifi className="w-4 h-4" />
+              <span>Connected to host's Spotify</span>
+            </div>
+          ) : (
+            <Link to="/host" className="flex items-center justify-center gap-2 text-amber-400 text-sm bg-amber-500/10 rounded-full py-2 px-4 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
+              <WifiOff className="w-4 h-4" />
+              <span>Host not connected</span>
+              <Settings className="w-4 h-4" />
+            </Link>
+          )}
+        </div>
+
         {/* Header */}
         <header className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -281,14 +324,16 @@ export default function Index() {
                   <span className="text-sm text-purple-300 hidden sm:block">{track.durationFormatted}</span>
                   <Button
                     onClick={() => addToQueue(track)}
-                    disabled={recentlyAdded.has(track.id)}
+                    disabled={recentlyAdded.has(track.id) || isAdding === track.id}
                     className={`rounded-xl px-6 py-6 text-base font-semibold transition-all ${
                       recentlyAdded.has(track.id)
                         ? "bg-green-500/50 cursor-not-allowed"
                         : "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 hover:scale-105"
                     }`}
                   >
-                    {recentlyAdded.has(track.id) ? (
+                    {isAdding === track.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : recentlyAdded.has(track.id) ? (
                       <Check className="w-5 h-5" />
                     ) : (
                       <Plus className="w-5 h-5" />
