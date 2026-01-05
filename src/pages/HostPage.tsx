@@ -144,7 +144,8 @@ export default function HostPage() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to create room');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create room`);
       }
 
       const data = await response.json();

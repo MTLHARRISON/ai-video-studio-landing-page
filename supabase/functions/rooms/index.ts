@@ -68,7 +68,18 @@ serve(async (req) => {
   try {
     // Create room
     if (action === 'create') {
-      const { name, host_pin } = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (error) {
+        console.error('Error parsing request body:', error);
+        return new Response(
+          JSON.stringify({ error: 'Invalid request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { name, host_pin } = body;
       
       if (!host_pin) {
         return new Response(
@@ -79,8 +90,17 @@ serve(async (req) => {
 
       let code = generateRoomCode();
       // Ensure unique code
-      while (rooms.has(code)) {
+      let attempts = 0;
+      while (rooms.has(code) && attempts < 10) {
         code = generateRoomCode();
+        attempts++;
+      }
+
+      if (rooms.has(code)) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate unique room code' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       const id = crypto.randomUUID();
@@ -100,8 +120,18 @@ serve(async (req) => {
       roomsById.set(id, room);
       queue.set(id, []);
 
+      console.log('Room created:', { id, code, name });
+
+      // Return room with ISO string dates for JSON serialization
       return new Response(
-        JSON.stringify(room),
+        JSON.stringify({
+          id: room.id,
+          code: room.code,
+          name: room.name,
+          host_pin: room.host_pin,
+          created_at: room.created_at.toISOString(),
+          expires_at: room.expires_at.toISOString(),
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -137,7 +167,14 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify(room),
+        JSON.stringify({
+          id: room.id,
+          code: room.code,
+          name: room.name,
+          host_pin: room.host_pin,
+          created_at: room.created_at.toISOString(),
+          expires_at: room.expires_at.toISOString(),
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -173,14 +210,31 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify(room),
+        JSON.stringify({
+          id: room.id,
+          code: room.code,
+          name: room.name,
+          host_pin: room.host_pin,
+          created_at: room.created_at.toISOString(),
+          expires_at: room.expires_at.toISOString(),
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Verify PIN
     if (action === 'verify-pin') {
-      const { code, pin } = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { code, pin } = body;
       
       if (!code || !pin) {
         return new Response(
@@ -209,7 +263,17 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ valid: room.host_pin === pin, room: room.host_pin === pin ? room : null }),
+        JSON.stringify({ 
+          valid: room.host_pin === pin, 
+          room: room.host_pin === pin ? {
+            id: room.id,
+            code: room.code,
+            name: room.name,
+            host_pin: room.host_pin,
+            created_at: room.created_at.toISOString(),
+            expires_at: room.expires_at.toISOString(),
+          } : null 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -227,15 +291,31 @@ serve(async (req) => {
 
       const roomQueue = queue.get(roomId) || [];
       
+      // Convert dates to ISO strings for JSON serialization
+      const serializedQueue = roomQueue.map(item => ({
+        ...item,
+        created_at: item.created_at.toISOString(),
+      }));
+      
       return new Response(
-        JSON.stringify(roomQueue),
+        JSON.stringify(serializedQueue),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Add to queue
     if (action === 'add-to-queue') {
-      const { room_id, spotify_track_id, track_title, track_artist, track_album, track_duration_ms, track_cover_url, added_by, session_id } = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { room_id, spotify_track_id, track_title, track_artist, track_album, track_duration_ms, track_cover_url, added_by, session_id } = body;
       
       if (!room_id || !spotify_track_id || !track_title || !track_artist) {
         return new Response(
@@ -270,14 +350,27 @@ serve(async (req) => {
       queue.set(room_id, roomQueue);
 
       return new Response(
-        JSON.stringify(queueItem),
+        JSON.stringify({
+          ...queueItem,
+          created_at: queueItem.created_at.toISOString(),
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Clear queue
     if (action === 'clear-queue') {
-      const { room_id } = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { room_id } = body;
       
       if (!room_id) {
         return new Response(
