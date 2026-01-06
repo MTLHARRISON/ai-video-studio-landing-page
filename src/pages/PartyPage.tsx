@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Volume2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SpotifyTrack {
   id: string;
@@ -27,7 +26,6 @@ interface QueueItem {
   track_cover_url: string | null;
   added_by: string;
   created_at: string;
-  room_id: string | null;
 }
 
 interface NowPlaying {
@@ -48,8 +46,6 @@ interface Room {
   expires_at: string;
 }
 
-const guestNames = ["Party Guest", "Music Lover", "Dance Floor", "DJ Wannabe", "Vibe Curator", "Song Hunter"];
-
 function getSessionId(): string {
   let sessionId = localStorage.getItem('jukebox_session_id');
   if (!sessionId) {
@@ -60,12 +56,7 @@ function getSessionId(): string {
 }
 
 function getGuestName(): string {
-  let guestName = localStorage.getItem('jukebox_guest_name');
-  if (!guestName) {
-    guestName = guestNames[Math.floor(Math.random() * guestNames.length)];
-    localStorage.setItem('jukebox_guest_name', guestName);
-  }
-  return guestName;
+  return localStorage.getItem('jukebox_guest_name') || 'Party Guest';
 }
 
 export default function PartyPage() {
@@ -97,67 +88,49 @@ export default function PartyPage() {
     }
   }, [roomCode]);
 
-  // Load queue and subscribe to updates when room is loaded
+  // Load queue and poll for updates when room is loaded
   useEffect(() => {
     if (!room) return;
 
     loadQueue();
     fetchNowPlaying();
 
-    // Poll for now playing every 5 seconds
-    const nowPlayingInterval = setInterval(fetchNowPlaying, 5000);
-
-    const channel = supabase
-      .channel('queue-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'queue',
-          filter: `room_id=eq.${room.id}`,
-        },
-        () => {
-          loadQueue();
-        }
-      )
-      .subscribe();
+    // Poll for now playing and queue every 5 seconds
+    const pollInterval = setInterval(() => {
+      fetchNowPlaying();
+      loadQueue();
+    }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
-      clearInterval(nowPlayingInterval);
+      clearInterval(pollInterval);
     };
   }, [room]);
 
   const loadRoom = async () => {
     setIsLoadingRoom(true);
     try {
-      const { data: roomData, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', roomCode?.toUpperCase())
-        .maybeSingle();
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=get-by-code&code=${roomCode?.toUpperCase()}`,
+        {
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
+        }
+      );
 
-      if (error || !roomData) {
+      if (response.status === 404 || response.status === 410) {
         toast({
-          title: "Room not found",
-          description: "This party room doesn't exist.",
+          title: response.status === 410 ? "Room expired" : "Room not found",
+          description: response.status === 410 ? "This party room has expired." : "This party room doesn't exist.",
           variant: "destructive",
         });
         navigate('/');
         return;
       }
 
-      if (new Date(roomData.expires_at) < new Date()) {
-        toast({
-          title: "Room expired",
-          description: "This party room has expired.",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to load room');
       }
 
+      const roomData = await response.json();
       setRoom(roomData);
       sessionStorage.setItem('current_room_id', roomData.id);
       sessionStorage.setItem('current_room_code', roomData.code);
@@ -170,24 +143,27 @@ export default function PartyPage() {
     }
   };
 
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     if (!room) return;
     
-    const { data, error } = await supabase
-      .from('queue')
-      .select('*')
-      .eq('room_id', room.id)
-      .order('created_at', { ascending: true });
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=get-queue&room_id=${room.id}`,
+        {
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
+        }
+      );
 
-    if (error) {
+      if (response.ok) {
+        const data = await response.json();
+        setQueue(data || []);
+      }
+    } catch (error) {
       console.error('Error loading queue:', error);
-      return;
     }
+  }, [room, supabaseUrl, supabaseKey]);
 
-    setQueue(data || []);
-  };
-
-  const fetchNowPlaying = async () => {
+  const fetchNowPlaying = useCallback(async () => {
     if (!room) return;
 
     try {
@@ -211,7 +187,7 @@ export default function PartyPage() {
     } catch (error) {
       console.error('Error fetching now playing:', error);
     }
-  };
+  }, [room, supabaseUrl, supabaseKey]);
 
   // Debounced search
   useEffect(() => {
@@ -272,6 +248,7 @@ export default function PartyPage() {
       return;
     }
 
+    // Check for recent duplicates in local queue
     const tenMinutesAgo = new Date(now - 600000).toISOString();
     const recentDuplicate = queue.find(
       (item) => item.spotify_track_id === track.id && item.created_at > tenMinutesAgo
@@ -289,8 +266,9 @@ export default function PartyPage() {
     setIsAdding(track.id);
 
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/spotify?action=add-to-queue`,
+      // Add to local queue via rooms edge function
+      const queueResponse = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=add-to-queue`,
         {
           method: 'POST',
           headers: {
@@ -298,29 +276,57 @@ export default function PartyPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            roomId: room.id,
-            trackUri: track.uri,
-            trackId: track.id,
-            trackTitle: track.title,
-            trackArtist: track.artist,
-            trackAlbum: track.album,
-            trackDuration: track.duration,
-            trackCover: track.cover,
-            addedBy: guestName,
+            room_id: room.id,
+            spotify_track_id: track.id,
+            track_title: track.title,
+            track_artist: track.artist,
+            track_album: track.album,
+            track_duration_ms: track.duration,
+            track_cover_url: track.cover,
+            added_by: guestName,
+            session_id: sessionId,
           }),
         }
       );
 
-      const result = await response.json();
+      if (!queueResponse.ok) {
+        throw new Error('Failed to add to queue');
+      }
 
-      if (!response.ok) throw new Error(result.error || 'Failed to add');
+      // Try to add to Spotify queue if host is connected
+      let addedToSpotify = false;
+      if (hostConnected) {
+        const spotifyResponse = await fetch(
+          `${supabaseUrl}/functions/v1/spotify?action=add-to-queue`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              roomId: room.id,
+              trackUri: track.uri,
+              trackTitle: track.title,
+            }),
+          }
+        );
+
+        const spotifyResult = await spotifyResponse.json();
+        addedToSpotify = spotifyResult.addedToSpotify;
+      }
 
       setLastAddTime(now);
       setRecentlyAdded((prev) => new Set([...prev, track.id]));
 
+      // Refresh queue
+      loadQueue();
+
       toast({
-        title: result.addedToSpotify ? "Playing soon! 🎉" : "Added to queue! 🎉",
-        description: result.message || `"${track.title}" is now in the party queue!`,
+        title: addedToSpotify ? "Playing soon! 🎉" : "Added to queue! 🎉",
+        description: addedToSpotify 
+          ? `"${track.title}" is now in Spotify's queue!`
+          : `"${track.title}" added! ${hostConnected ? '' : '(Waiting for host to connect)'}`,
       });
 
       setSearchQuery("");
