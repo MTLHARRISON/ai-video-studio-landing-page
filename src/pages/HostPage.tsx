@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Music2, Disc3, Wifi, WifiOff, LogOut, Loader2, CheckCircle, Trash2, QrCode, Copy, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+
+// Generate a random 6-character room code
+function generateRoomCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 // Generate a random 4-digit PIN
 function generatePin(): string {
@@ -66,21 +77,18 @@ export default function HostPage() {
   const loadRoom = async (roomId: string, pin: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=get-by-id&id=${roomId}`,
-        {
-          headers: { 'Authorization': `Bearer ${supabaseKey}` },
-        }
-      );
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .maybeSingle();
 
-      if (!response.ok) {
+      if (error || !roomData) {
         sessionStorage.removeItem('host_room_id');
         sessionStorage.removeItem('host_room_pin');
         setIsLoading(false);
         return;
       }
-
-      const roomData = await response.json();
 
       // Verify PIN
       if (roomData.host_pin !== pin) {
@@ -126,29 +134,22 @@ export default function HostPage() {
   const createRoom = async () => {
     setIsCreatingRoom(true);
     try {
+      const code = generateRoomCode();
       const pin = generatePin();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=create`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: roomName.trim() || 'Party Room',
-            host_pin: pin,
-          }),
-        }
-      );
+      const { data, error } = await supabase
+        .from('rooms')
+        .insert({
+          code,
+          name: roomName.trim() || 'Party Room',
+          host_pin: pin,
+          expires_at: expiresAt,
+        })
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create room`);
-      }
-
-      const data = await response.json();
+      if (error) throw error;
 
       // Store in session
       sessionStorage.setItem('host_room_id', data.id);
@@ -180,31 +181,26 @@ export default function HostPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=verify-pin`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code: existingRoomCode.toUpperCase().trim(),
-            pin: pinEntry.trim(),
-          }),
-        }
-      );
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', existingRoomCode.toUpperCase().trim())
+        .maybeSingle();
 
-      if (!response.ok) {
+      if (error || !roomData) {
         toast({ title: "Room not found", variant: "destructive" });
         setIsLoading(false);
         return;
       }
 
-      const { valid, room: roomData } = await response.json();
-
-      if (!valid || !roomData) {
+      if (roomData.host_pin !== pinEntry.trim()) {
         toast({ title: "Incorrect PIN", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
+      if (new Date(roomData.expires_at) < new Date()) {
+        toast({ title: "Room expired", variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -235,24 +231,18 @@ export default function HostPage() {
         }
       );
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to get auth URL`);
-      }
-
       const data = await response.json();
       
       if (data.authUrl) {
         window.location.href = data.authUrl;
       } else {
-        throw new Error(data.error || 'Failed to get auth URL');
+        throw new Error('Failed to get auth URL');
       }
     } catch (error) {
       console.error('Error connecting:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Could not connect to Spotify. Please try again.';
       toast({
         title: "Connection failed",
-        description: errorMessage,
+        description: "Could not connect to Spotify. Please try again.",
         variant: "destructive",
       });
       setIsConnecting(false);
@@ -276,11 +266,6 @@ export default function HostPage() {
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || errorData.details || `HTTP ${response.status}: Failed to exchange code`);
-      }
-
       const data = await response.json();
 
       if (data.success) {
@@ -300,10 +285,9 @@ export default function HostPage() {
       }
     } catch (error) {
       console.error('Error exchanging code:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Could not complete Spotify authentication.';
       toast({
         title: "Connection failed",
-        description: errorMessage,
+        description: "Could not complete Spotify authentication.",
         variant: "destructive",
       });
       navigate('/host', { replace: true });
@@ -332,30 +316,24 @@ export default function HostPage() {
     if (!room) return;
     setIsClearing(true);
     try {
-      // Clear in-memory queue for this room
-      await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=clear-queue`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ room_id: room.id }),
-        }
-      );
+      // Clear database queue for this room
+      const { error } = await supabase
+        .from('queue')
+        .delete()
+        .eq('room_id', room.id);
+      
+      if (error) throw error;
 
       // Also clear Spotify queue if connected
       if (isConnected) {
         await fetch(
-          `${supabaseUrl}/functions/v1/spotify?action=clear-spotify-queue`,
+          `${supabaseUrl}/functions/v1/spotify?action=clear-spotify-queue&room_id=${room.id}`,
           {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${supabaseKey}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ room_id: room.id }),
           }
         );
       }
