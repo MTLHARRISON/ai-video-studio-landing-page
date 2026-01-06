@@ -1,10 +1,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// In-memory storage for Spotify host tokens (keyed by room_id)
+interface SpotifyHost {
+  access_token: string;
+  refresh_token: string;
+  expires_at: Date;
+  updated_at: Date;
+}
+
+const spotifyHosts = new Map<string, SpotifyHost>();
+
+// Clean up expired tokens periodically
+setInterval(() => {
+  const now = new Date();
+  for (const [roomId, host] of spotifyHosts.entries()) {
+    // Remove if token expired more than 1 hour ago (giving buffer for refresh)
+    if (host.expires_at.getTime() < now.getTime() - 3600000) {
+      spotifyHosts.delete(roomId);
+    }
+  }
+}, 60000);
+
+// Export for use by spotify function
+export function getSpotifyHost(roomId: string): SpotifyHost | null {
+  return spotifyHosts.get(roomId) || null;
+}
+
+export function setSpotifyHost(roomId: string, host: SpotifyHost): void {
+  spotifyHosts.set(roomId, host);
+}
+
+export function deleteSpotifyHost(roomId: string): void {
+  spotifyHosts.delete(roomId);
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,10 +50,6 @@ serve(async (req) => {
 
   const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
   const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     // Generate auth URL for host to login
@@ -88,53 +117,26 @@ serve(async (req) => {
       }
 
       const tokens = await tokenResponse.json();
-      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-
-      // Delete existing host for this room and insert new one
-      await supabase.from('spotify_host').delete().eq('room_id', room_id);
-      
-      const { error: insertError } = await supabase.from('spotify_host').insert({
-        room_id: room_id,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: expiresAt.toISOString(),
-      });
-
-      if (insertError) {
-        console.error('Error saving tokens:', insertError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to save tokens' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
 
       console.log('Host authenticated successfully for room:', room_id);
 
+      // Return tokens to client so it can store them via spotify function
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ 
+          success: true,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_in: tokens.expires_in,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if host is connected for a specific room
+    // Check if host is connected - delegate to spotify function
     if (action === 'check-status') {
-      if (!roomId) {
-        return new Response(
-          JSON.stringify({ connected: false }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const { data: host } = await supabase
-        .from('spotify_host')
-        .select('expires_at')
-        .eq('room_id', roomId)
-        .maybeSingle();
-
-      const connected = host && new Date(host.expires_at) > new Date();
-
+      // This is now handled by the spotify function
       return new Response(
-        JSON.stringify({ connected }),
+        JSON.stringify({ connected: false, message: 'Use spotify function check-host action' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -148,7 +150,7 @@ serve(async (req) => {
         );
       }
 
-      await supabase.from('spotify_host').delete().eq('room_id', roomId);
+      spotifyHosts.delete(roomId);
       
       console.log('Host disconnected for room:', roomId);
 
