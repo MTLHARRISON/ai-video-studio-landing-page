@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Music2, Disc3, Wifi, WifiOff, LogOut, Loader2, CheckCircle, Trash2, QrCode, Copy, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+
+// Generate a random 6-character room code
+function generateRoomCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 // Generate a random 4-digit PIN
 function generatePin(): string {
@@ -66,24 +77,30 @@ export default function HostPage() {
   const loadRoom = async (roomId: string, pin: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=get-by-id&id=${roomId}`,
-        {
-          headers: { 'Authorization': `Bearer ${supabaseKey}` },
-        }
-      );
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .maybeSingle();
 
-      if (!response.ok) {
+      if (error || !roomData) {
         sessionStorage.removeItem('host_room_id');
         sessionStorage.removeItem('host_room_pin');
         setIsLoading(false);
         return;
       }
 
-      const roomData = await response.json();
-
       // Verify PIN
       if (roomData.host_pin !== pin) {
+        sessionStorage.removeItem('host_room_id');
+        sessionStorage.removeItem('host_room_pin');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if expired
+      if (new Date(roomData.expires_at) < new Date()) {
+        toast({ title: "Room expired", description: "Your party room has expired." });
         sessionStorage.removeItem('host_room_id');
         sessionStorage.removeItem('host_room_pin');
         setIsLoading(false);
@@ -102,7 +119,7 @@ export default function HostPage() {
   const checkSpotifyStatus = async (roomId: string) => {
     try {
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/spotify?action=check-host&room_id=${roomId}`,
+        `${supabaseUrl}/functions/v1/spotify-auth?action=check-status&room_id=${roomId}`,
         {
           headers: { 'Authorization': `Bearer ${supabaseKey}` },
         }
@@ -117,28 +134,22 @@ export default function HostPage() {
   const createRoom = async () => {
     setIsCreatingRoom(true);
     try {
+      const code = generateRoomCode();
       const pin = generatePin();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=create`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: roomName.trim() || 'Party Room',
-            host_pin: pin,
-          }),
-        }
-      );
+      const { data, error } = await supabase
+        .from('rooms')
+        .insert({
+          code,
+          name: roomName.trim() || 'Party Room',
+          host_pin: pin,
+          expires_at: expiresAt,
+        })
+        .select()
+        .single();
 
-      if (!response.ok) {
-        throw new Error('Failed to create room');
-      }
-
-      const data = await response.json();
+      if (error) throw error;
 
       // Store in session
       sessionStorage.setItem('host_room_id', data.id);
@@ -170,33 +181,34 @@ export default function HostPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=verify-pin`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code: existingRoomCode.toUpperCase().trim(),
-            pin: pinEntry.trim(),
-          }),
-        }
-      );
+      const { data: roomData, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', existingRoomCode.toUpperCase().trim())
+        .maybeSingle();
 
-      const data = await response.json();
-
-      if (!data.valid) {
-        toast({ title: data.error || "Invalid credentials", variant: "destructive" });
+      if (error || !roomData) {
+        toast({ title: "Room not found", variant: "destructive" });
         setIsLoading(false);
         return;
       }
 
-      sessionStorage.setItem('host_room_id', data.room.id);
+      if (roomData.host_pin !== pinEntry.trim()) {
+        toast({ title: "Incorrect PIN", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
+      if (new Date(roomData.expires_at) < new Date()) {
+        toast({ title: "Room expired", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
+      sessionStorage.setItem('host_room_id', roomData.id);
       sessionStorage.setItem('host_room_pin', pinEntry.trim());
-      setRoom(data.room);
-      await checkSpotifyStatus(data.room.id);
+      setRoom(roomData);
+      await checkSpotifyStatus(roomData.id);
       setShowPinEntry(false);
     } catch (error) {
       console.error('Error:', error);
@@ -257,24 +269,6 @@ export default function HostPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Store the host token in the spotify edge function's memory
-        await fetch(
-          `${supabaseUrl}/functions/v1/spotify?action=store-host`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              room_id: state,
-              access_token: data.access_token,
-              refresh_token: data.refresh_token,
-              expires_in: data.expires_in,
-            }),
-          }
-        );
-
         // Load room from state (room_id)
         const storedPin = sessionStorage.getItem('host_room_pin');
         if (storedPin) {
@@ -306,14 +300,9 @@ export default function HostPage() {
     if (!room) return;
     try {
       await fetch(
-        `${supabaseUrl}/functions/v1/spotify?action=disconnect-host`,
+        `${supabaseUrl}/functions/v1/spotify-auth?action=disconnect&room_id=${room.id}`,
         {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ room_id: room.id }),
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
         }
       );
       setIsConnected(false);
@@ -327,20 +316,29 @@ export default function HostPage() {
     if (!room) return;
     setIsClearing(true);
     try {
-      // Clear in-memory queue
-      await fetch(
-        `${supabaseUrl}/functions/v1/rooms?action=clear-queue`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ room_id: room.id }),
-        }
-      );
+      // Clear database queue for this room
+      const { error } = await supabase
+        .from('queue')
+        .delete()
+        .eq('room_id', room.id);
+      
+      if (error) throw error;
 
-      toast({ title: "Queue cleared", description: "All songs have been removed. Note: Spotify's queue must be cleared manually." });
+      // Also clear Spotify queue if connected
+      if (isConnected) {
+        await fetch(
+          `${supabaseUrl}/functions/v1/spotify?action=clear-spotify-queue&room_id=${room.id}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      toast({ title: "Queue cleared", description: "All songs have been removed." });
     } catch (error) {
       console.error('Error clearing queue:', error);
       toast({ title: "Failed to clear queue", variant: "destructive" });
