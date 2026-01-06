@@ -4,7 +4,6 @@ import { Disc3, Music2, ArrowRight, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function JoinRoomPage() {
   const navigate = useNavigate();
@@ -26,15 +25,17 @@ export default function JoinRoomPage() {
     setIsJoining(true);
 
     try {
-      const { data: room, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', roomCode.toUpperCase().trim())
-        .maybeSingle();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      if (error) throw error;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/rooms?action=get-by-code&code=${roomCode.toUpperCase().trim()}`,
+        {
+          headers: { 'Authorization': `Bearer ${supabaseKey}` },
+        }
+      );
 
-      if (!room) {
+      if (!response.ok) {
         toast({
           title: "Room not found",
           description: "Check the code and try again.",
@@ -42,6 +43,8 @@ export default function JoinRoomPage() {
         });
         return;
       }
+
+      const room = await response.json();
 
       // Check if room expired
       if (new Date(room.expires_at) < new Date()) {
