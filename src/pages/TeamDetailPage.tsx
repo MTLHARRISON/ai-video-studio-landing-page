@@ -41,7 +41,7 @@ const TEAM_HISTORICAL_DATA: Record<string, TeamHistoricalData> = {
     color: '#FF8000',
     logo: 'https://media.formula1.com/image/upload/f_auto/q_auto/content/dam/fom-website/teams/2025/mclaren.png',
     base: 'Woking, United Kingdom',
-    teamPrincipal: 'Andrea Stella',
+    teamPrincipal: 'Andrea Stela',
     founded: '1963',
     firstEntry: '1966',
     worldChampionships: 8,
