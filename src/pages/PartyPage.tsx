@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Volume2 } from "lucide-react";
+import { Search, Music2, Plus, Check, Clock, Disc3, Loader2, Wifi, WifiOff, Volume2, QrCode } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { QRCodeSVG } from "qrcode.react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SpotifyTrack {
   id: string;
@@ -392,6 +394,17 @@ export default function PartyPage() {
             Room: {room?.code}
           </p>
           <p className="text-sm text-purple-400 mt-1">Hi, {guestName}!</p>
+          {/* QR Code for large displays */}
+          <div className="mt-4 flex flex-col items-center">
+            <div className="bg-white p-3 rounded-2xl shadow-lg">
+              <QRCodeSVG
+                value={`${window.location.origin}/party/${room?.code}`}
+                size={160}
+                level="M"
+              />
+            </div>
+            <p className="text-xs text-purple-400 mt-2">Scan to join the party!</p>
+          </div>
         </header>
 
         {/* Now Playing */}
@@ -517,69 +530,85 @@ export default function PartyPage() {
             </span>
           </h2>
 
-          {queue.length === 0 ? (
-            <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
-              <Disc3 className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
-              <p className="text-purple-300 text-lg">The queue is empty!</p>
-              <p className="text-purple-400 text-sm mt-1">Search for a song above to get the party started 🎉</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {queue.map((item, index) => {
-                const isCurrentlyPlaying = nowPlaying?.track_id === item.spotify_track_id;
-                
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-4 p-4 backdrop-blur-sm rounded-2xl border transition-all ${
-                      isCurrentlyPlaying
-                        ? 'bg-green-500/20 border-green-500/50 ring-2 ring-green-500/30'
-                        : 'bg-white/10 border-white/20 hover:bg-white/15'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                      isCurrentlyPlaying
-                        ? 'bg-gradient-to-br from-green-400 to-emerald-500'
-                        : 'bg-gradient-to-br from-pink-500 to-purple-500'
-                    }`}>
-                      {isCurrentlyPlaying ? (
-                        <Volume2 className="w-4 h-4" />
-                      ) : (
-                        index + 1
-                      )}
-                    </div>
-                    {item.track_cover_url ? (
-                      <img
-                        src={item.track_cover_url}
-                        alt={item.track_album || ''}
-                        className={`w-12 h-12 rounded-lg object-cover shadow-lg ${isCurrentlyPlaying ? 'ring-2 ring-green-400' : ''}`}
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-purple-800 flex items-center justify-center">
-                        <Music2 className="w-5 h-5 text-purple-400" />
+          {(() => {
+            // Find the index of the currently playing song and filter out already-played songs
+            const nowPlayingIndex = nowPlaying
+              ? queue.findIndex((item) => item.spotify_track_id === nowPlaying.track_id)
+              : -1;
+            const visibleQueue = nowPlayingIndex > 0
+              ? queue.slice(nowPlayingIndex)
+              : queue;
+
+            if (visibleQueue.length === 0) {
+              return (
+                <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+                  <Disc3 className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
+                  <p className="text-purple-300 text-lg">The queue is empty!</p>
+                  <p className="text-purple-400 text-sm mt-1">Search for a song above to get the party started 🎉</p>
+                </div>
+              );
+            }
+
+            return (
+              <ScrollArea className="max-h-[50vh]">
+                <div className="space-y-3 pr-3">
+                  {visibleQueue.map((item, index) => {
+                    const isCurrentlyPlaying = nowPlaying?.track_id === item.spotify_track_id;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`flex items-center gap-4 p-4 backdrop-blur-sm rounded-2xl border transition-all ${
+                          isCurrentlyPlaying
+                            ? 'bg-green-500/20 border-green-500/50 ring-2 ring-green-500/30'
+                            : 'bg-white/10 border-white/20 hover:bg-white/15'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          isCurrentlyPlaying
+                            ? 'bg-gradient-to-br from-green-400 to-emerald-500'
+                            : 'bg-gradient-to-br from-pink-500 to-purple-500'
+                        }`}>
+                          {isCurrentlyPlaying ? (
+                            <Volume2 className="w-4 h-4" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        {item.track_cover_url ? (
+                          <img
+                            src={item.track_cover_url}
+                            alt={item.track_album || ''}
+                            className={`w-12 h-12 rounded-lg object-cover shadow-lg ${isCurrentlyPlaying ? 'ring-2 ring-green-400' : ''}`}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-purple-800 flex items-center justify-center">
+                            <Music2 className="w-5 h-5 text-purple-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`font-semibold truncate ${isCurrentlyPlaying ? 'text-green-300' : 'text-white'}`}>
+                            {item.track_title}
+                          </h3>
+                          <p className={`text-sm truncate ${isCurrentlyPlaying ? 'text-green-200' : 'text-purple-200'}`}>
+                            {item.track_artist}
+                          </p>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                          <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-purple-300'}`}>
+                            {item.track_duration_ms ? formatDuration(item.track_duration_ms) : ''}
+                          </p>
+                          <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-pink-300'}`}>
+                            Added by {item.added_by}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold truncate ${isCurrentlyPlaying ? 'text-green-300' : 'text-white'}`}>
-                        {item.track_title}
-                      </h3>
-                      <p className={`text-sm truncate ${isCurrentlyPlaying ? 'text-green-200' : 'text-purple-200'}`}>
-                        {item.track_artist}
-                      </p>
-                    </div>
-                    <div className="text-right hidden sm:block">
-                      <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-purple-300'}`}>
-                        {item.track_duration_ms ? formatDuration(item.track_duration_ms) : ''}
-                      </p>
-                      <p className={`text-xs ${isCurrentlyPlaying ? 'text-green-300' : 'text-pink-300'}`}>
-                        Added by {item.added_by}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            );
+          })()}
         </div>
 
         {/* Footer */}
